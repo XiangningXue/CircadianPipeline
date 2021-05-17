@@ -11,13 +11,13 @@
 #' @param period The length of the rhythmicity cycle. When it is 24 (default), the signal is circadian.
 #'
 #' @return a list of rhythmicity parameters
-#' \item{M1}{A list of OLS estimate of M1 and the lower and upper limit of M1 corresponding to the critical level alpha}
-#' \item{A1}{A list of estimate of A1, sd of A1 and the lower and upper limit of A1 corresponding to the critical level alpha}
-#' \item{phase1}{A list of estimate of phase1, sd of phase1 and the lower and upper limit of phase1 corresponding to the critical level alpha}
-#' \item{M2}{A list of OLS estimate of M2 and the lower and upper limit of M2 corresponding to the critical level alpha}
-#' \item{A2}{A list of estimate of A2, sd of A2 and the lower and upper limit of A2 corresponding to the critical level alpha}
-#' \item{phase2}{A list of estimate of phase2, sd of phase2 and the lower and upper limit of phase2 corresponding to the critical level alpha}
-#' \item{test}{A list of test result: F statistics, p-value and R2, \eqn{\sigma^2} (the variance of the error term)}
+#' {M1}{A list of OLS estimate of M1 and the lower and upper limit of M1 corresponding to the critical level alpha}
+#' {A1}{A list of estimate of A1, sd of A1 and the lower and upper limit of A1 corresponding to the critical level alpha}
+#' {phase1}{A list of estimate of phase1, sd of phase1 and the lower and upper limit of phase1 corresponding to the critical level alpha}
+#' {M2}{A list of OLS estimate of M2 and the lower and upper limit of M2 corresponding to the critical level alpha}
+#' {A2}{A list of estimate of A2, sd of A2 and the lower and upper limit of A2 corresponding to the critical level alpha}
+#' {phase2}{A list of estimate of phase2, sd of phase2 and the lower and upper limit of phase2 corresponding to the critical level alpha}
+#' {test}{A list of test result: F statistics, p-value and R2, \eqn{\sigma^2} (the variance of the error term)}
 #'
 #' @export
 #' @examples
