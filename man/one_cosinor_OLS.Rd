@@ -17,11 +17,11 @@ one_cosinor_OLS(tod = time, y = y, alpha = 0.05, period = 24, CI = TRUE)
 }
 \value{
 a list of rhythmicity parameters
-\item{M}{A list of OLS estimate of M and the lower and upper limit of M corresponding to the critical level alpha}
-\item{A}{A list of estimate of A, sd of A and the lower and upper limit of A corresponding to the critical level alpha}
-\item{phase}{A list of estimate of phase, sd of phase and the lower and upper limit of phase corresponding to the critical level alpha}
-\item{peak}{The conversion from phase to peak is  peak = (period-period\emph{phase/(2}pi)).
-\item{test}{A list of test result: F statistics, p-value and R2, \eqn{\sigma^2} (the variance of the error term)}
+{M}{A list of OLS estimate of M and the lower and upper limit of M corresponding to the critical level alpha}
+{A}{A list of estimate of A, sd of A and the lower and upper limit of A corresponding to the critical level alpha}
+{phase}{A list of estimate of phase, sd of phase and the lower and upper limit of phase corresponding to the critical level alpha}
+{peak}{The conversion from phase to peak is  peak = (period-period\emph{phase/(2}pi)).
+{test}{A list of test result: F statistics, p-value and R2, \eqn{\sigma^2} (the variance of the error term)}
 }
 \description{
 This function fit the expression and time to this function \deqn{y = M+A(cos(2\pi/24*t+phase))+\epsilon}, where \eqn{\epsilon \sim N(0, \sigma^2)}.

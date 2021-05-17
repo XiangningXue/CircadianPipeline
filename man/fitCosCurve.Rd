@@ -24,14 +24,14 @@ fitCosCurve(
 A list of A, phase, M, peak, B1, B2, SST, SSE, R2.
 Formula 1: \eqn{y = M + A * cos(2\pi/period * t+phase)}
 Formula 2: \eqn{y = M + B1 * cos(2\pi/period * t) + B2 * cos(2*\pi/period * t) }
-\item{A}{Amplitude based on formula 1.}
-\item{phase}{Phase based on formula 1, phase is restricted within (0, 2\eqn{\pi}).}
-\item{M}{Basal level (vertical shift) based on formula 1 or on formula 2.}
-\item{B1}{B1 based on formula 2.}
-\item{B2}{B2 based on formula 2.}
-\item{tss}{Total sum of square.}
-\item{rss}{Residual sum of square, SSE/n is the MLE of the variance sigma square.}
-\item{R2}{Pseudo R2 defined as (tss - rss)/tss.}
+{A}{Amplitude based on formula 1.}
+{phase}{Phase based on formula 1, phase is restricted within (0, 2\eqn{\pi}).}
+{M}{Basal level (vertical shift) based on formula 1 or on formula 2.}
+{B1}{B1 based on formula 2.}
+{B2}{B2 based on formula 2.}
+{tss}{Total sum of square.}
+{rss}{Residual sum of square, SSE/n is the MLE of the variance sigma square.}
+{R2}{Pseudo R2 defined as (tss - rss)/tss.}
 }
 \description{
 Fit cosinor function
