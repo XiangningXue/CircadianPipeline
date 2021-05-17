@@ -30,7 +30,7 @@
 ##' yy <- Amp * cos(2*pi/24 * tt + Phase) + Offset + rnorm(n,0,1)
 ##' fitCosCurve(tt, yy)
 
-fitCosCurve <- function(tt, yy, period = 24, parStart = list(amp=3,phase=0, offset=0)){
+fitCosCurve <- function(tod = tt, y = yy, period = 24, parStart = list(amp=3,phase=0, offset=0)){
 
   getPred <- function(parS, tt) {
     parS$amp * cos(2*pi/period * tt + parS$phase) + parS$offset

@@ -44,6 +44,7 @@ x1.Rhythm = CP_Rhythmicity(x1, parallel = FALSE)
 x2 = list(data = noise.mat2 + signal.mat2, tod = x2.time, label = paste("gene", seq_len(100)))
 x2.Rhythm = CP_Rhythmicity(x2, parallel = FALSE)
 
-x.joint = CP_JointRhythmicity(x1.Rhythm, x2.Rhythm, method = "AW-Fisher", para.list = list(param = "pvalue", range = "less", value = 0.05))
+x.joint = CP_JointRhythmicity(x1.Rhythm, x2.Rhythm, method = "AW-Fisher",
+para.list = list(param = "pvalue", range = "less", value = 0.05))
 
 }

@@ -5,20 +5,20 @@
 \title{Fit cosinor function using optimization}
 \usage{
 fitCosCurve(
-  tt,
-  yy,
+  tod = tt,
+  y = yy,
   period = 24,
   parStart = list(amp = 3, phase = 0, offset = 0)
 )
 }
 \arguments{
-\item{period}{period The length of the rhythmicity cycle. When it is 24 (default), the signal is circadian.}
-
-\item{parStart}{Initial value for optimization purpose.}
-
 \item{tod}{a numeric vector. Time of death (e.g. time of expression of the gene). length should be the same as y}
 
 \item{y}{a numeric vector. Gene expression level.}
+
+\item{period}{period The length of the rhythmicity cycle. When it is 24 (default), the signal is circadian.}
+
+\item{parStart}{Initial value for optimization purpose.}
 }
 \value{
 A list of A, phase, M, peak, B1, B2, SST, SSE, R2.

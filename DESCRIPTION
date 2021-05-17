@@ -17,4 +17,9 @@ Imports:
     lattice,
     minpack.lm,
     circacompare,
-    differentialR2
+    differentialR2,
+    AWFisher,
+    Matrix,
+    purrr,
+    stats,
+    utils

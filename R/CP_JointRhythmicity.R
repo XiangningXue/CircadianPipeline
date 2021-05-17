@@ -28,7 +28,8 @@
 #' x2 = list(data = noise.mat2 + signal.mat2, tod = x2.time, label = paste("gene", seq_len(100)))
 #' x2.Rhythm = CP_Rhythmicity(x2, parallel = FALSE)
 #'
-#' x.joint = CP_JointRhythmicity(x1.Rhythm, x2.Rhythm, method = "AW-Fisher", para.list = list(param = "pvalue", range = "less", value = 0.05))
+#' x.joint = CP_JointRhythmicity(x1.Rhythm, x2.Rhythm, method = "AW-Fisher",
+#' para.list = list(param = "pvalue", range = "less", value = 0.05))
 #'
 CP_JointRhythmicity = function(x1 = data1.rhythm, x2 = data2.rhythm, method = "AW-Fisher", para.list = list(param = "pvalue", range = "less", value = 0.05)){
   #This function takes the rhythmicity results for two data sets and return genes that rhythmic in at least one/two data sets
