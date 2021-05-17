@@ -11,7 +11,7 @@
 #' {M}{A list of OLS estimate of M and the lower and upper limit of M corresponding to the critical level alpha}
 #' {A}{A list of estimate of A, sd of A and the lower and upper limit of A corresponding to the critical level alpha}
 #' {phase}{A list of estimate of phase, sd of phase and the lower and upper limit of phase corresponding to the critical level alpha}
-#' {peak}{The conversion from phase to peak is  peak = (period-period*phase/(2*pi)).
+#' {peak}{The conversion from phase to peak is  \eqn{peak = (period-period*phase/(2*pi))}.
 #' {test}{A list of test result: F statistics, p-value and R2, \eqn{\sigma^2} (the variance of the error term)}
 #'
 #' @export
