@@ -57,24 +57,24 @@ A list with two components: diffPar: result of differential parameter test for g
 Title
 }
 \examples{
-x1.time = runif(20, min = 0, max = 24)
-m1 = rnorm(100, 5); A1 = rnorm(100, 3); phase1 = runif(100, min = 0, max = 2*pi); sigma = 1
-noise.mat1 = matrix(rnorm(100*20, 0, sigma), ncol = 20, nrow = 100)
-signal.mat1 = t(sapply(1:100, function(a){m1[a]+A1[a]*cos(2*pi/24*x1.time+phase1[a])}))
+#x1.time = runif(20, min = 0, max = 24)
+#m1 = rnorm(100, 5); A1 = rnorm(100, 3); phase1 = runif(100, min = 0, max = 2*pi); sigma = 1
+#noise.mat1 = matrix(rnorm(100*20, 0, sigma), ncol = 20, nrow = 100)
+#signal.mat1 = t(sapply(1:100, function(a){m1[a]+A1[a]*cos(2*pi/24*x1.time+phase1[a])}))
 
-x2.time = runif(20, min = 0, max = 24)
-m2 = m1; A2 = 1.5*A1; phase2 = runif(100, min = 0, max = 2*pi); sigma = 1
-noise.mat2 = matrix(rnorm(100*20, 0, sigma), ncol = 20, nrow = 100)
-signal.mat2 = t(sapply(1:100, function(a){m2[a]+A2[a]*cos(2*pi/24*x2.time+phase2[a])}))
+#x2.time = runif(20, min = 0, max = 24)
+#m2 = m1; A2 = 1.5*A1; phase2 = runif(100, min = 0, max = 2*pi); sigma = 1
+#noise.mat2 = matrix(rnorm(100*20, 0, sigma), ncol = 20, nrow = 100)
+#signal.mat2 = t(sapply(1:100, function(a){m2[a]+A2[a]*cos(2*pi/24*x2.time+phase2[a])}))
 
-x1 = list(data = noise.mat1 + signal.mat1, tod = x1.time, label = paste("gene", seq_len(100)))
-x1.Rhythm = CP_Rhythmicity(x1, parallel = FALSE)
-x2 = list(data = noise.mat2 + signal.mat2, tod = x2.time, label = paste("gene", seq_len(100)))
-x2.Rhythm = CP_Rhythmicity(x2, parallel = FALSE)
+#x1 = list(data = noise.mat1 + signal.mat1, tod = x1.time, label = paste("gene", seq_len(100)))
+#x1.Rhythm = CP_Rhythmicity(x1, parallel = FALSE)
+#x2 = list(data = noise.mat2 + signal.mat2, tod = x2.time, label = paste("gene", seq_len(100)))
+#x2.Rhythm = CP_Rhythmicity(x2, parallel = FALSE)
 
-x.joint = CP_JointRhythmicity(x1.Rhythm, x2.Rhythm, method = "AW-Fisher",
-para.list = list(param = "pvalue", range = "less", value = 0.05))
+#x.joint = CP_JointRhythmicity(x1.Rhythm, x2.Rhythm, method = "AW-Fisher",
+#para.list = list(param = "pvalue", range = "less", value = 0.05))
 
-diffRhythm.res = CP_DiffRhythmicity(x1.Rhythm, x2.Rhythm, x.joint)
+#diffRhythm.res = CP_DiffRhythmicity(x1.Rhythm, x2.Rhythm, x.joint)
 
 }
