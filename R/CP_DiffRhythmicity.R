@@ -51,6 +51,7 @@ CP_DiffRhythmicity = function(x1 = data1.rhythm, x2 = data2.rhythm, x.joint = jo
     return(phase)
   }
 
+
   if(diffPar.method == "permutation"&diffR2.method== "permutation"){
     if((permutation.save!="NULL")&!dir.exists(permutation.save)){
       dir.create(file.path(permutation.save), recursive = TRUE)
@@ -63,7 +64,7 @@ CP_DiffRhythmicity = function(x1 = data1.rhythm, x2 = data2.rhythm, x.joint = jo
 
     #differential parameter test
     overlap.g = x.joint$Rhythmic.Both
-    if(diffPar.method == "two_cosinor"){
+    if(diffPar.method == "two_cosinor1"){
       x.list = lapply(1:length(overlap.g), function(a){
         one.gene.data = data.frame(time = c(x1$tod, x2$tod),
                                    measure = c(as.numeric(x1$data[match(overlap.g[a], x1$label), ]),
@@ -86,6 +87,33 @@ CP_DiffRhythmicity = function(x1 = data1.rhythm, x2 = data2.rhythm, x.joint = jo
                            M.ind = two.res$test$M.ind[1],
                            A.ind = two.res$test$phase.ind[1],
                            phase.ind = two.res$test$phase.ind[1]))
+      }))
+
+      diffPar.tab$q.global = stats::p.adjust(diffPar.tab$p.global, p.adjust.method)
+
+    }else if(diffPar.method == "two_cosinor2"){
+      x.list = lapply(1:length(overlap.g), function(a){
+        one.gene.data = data.frame(time = c(x1$tod, x2$tod),
+                                   measure = c(as.numeric(x1$data[match(overlap.g[a], x1$label), ]),
+                                               as.numeric(x2$data[match(overlap.g[a], x2$label), ])),
+                                   group = factor(c(rep(0, length(x1$tod)), rep(1, length(x2$tod)))))
+        return(one.gene.data)
+      })
+
+      two_cosinor.res = option_parallel(x.list, function(one.data){
+        one.res = two_cosinor_OLS(tod = one.data$time, y = one.data$measure, group = one.data$group)
+        return(one.res)
+      }, parallel, cores)
+
+      diffPar.tab = do.call(rbind.data.frame, lapply(two_cosinor.res, function(one.res){
+        as.data.frame(list(delta.M = two.res$g2$M$est-two.res$g1$M$est,
+                           delta.A = two.res$g2$A$est-two.res$g1$A$est,
+                           delta.phase = two.res$g2$phase$est-two.res$g1$phase$est,
+                           delta.peak = two.res$g2$peak-two.res$g1$peak,
+                           p.global = two.res$test$global.pval,
+                           M.ind = two.res$test$M.ind[2],
+                           A.ind = two.res$test$phase.ind[2],
+                           phase.ind = two.res$test$phase.ind[2]))
       }))
 
       diffPar.tab$q.global = stats::p.adjust(diffPar.tab$p.global, p.adjust.method)
