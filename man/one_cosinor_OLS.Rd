@@ -4,7 +4,14 @@
 \alias{one_cosinor_OLS}
 \title{Title Fit one-component cosinor with OLS for one gene}
 \usage{
-one_cosinor_OLS(tod = time, y = y, alpha = 0.05, period = 24, CI = TRUE)
+one_cosinor_OLS(
+  tod = time,
+  y = y,
+  alpha = 0.05,
+  period = 24,
+  CI = TRUE,
+  CI.type = "conservative"
+)
 }
 \arguments{
 \item{tod}{a numeric vector. Time of death (e.g. time of expression of the gene). length should be the same as y}

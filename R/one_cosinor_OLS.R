@@ -24,7 +24,8 @@
 #' y = m+A*cos(2*pi/24*x.time+phase)+rnorm(20, 0, sigma)
 #' est = one_cosinor_OLS(tod = x.time, y = y, alpha = 0.05, period = 24)
 #'
-one_cosinor_OLS = function(tod = time, y = y, alpha = 0.05, period = 24, CI = TRUE){
+one_cosinor_OLS = function(tod = time, y = y, alpha = 0.05, period = 24, CI = TRUE, CI.type = "conservative"){
+
   #alpha is the critical level for equal tailed CI
   n = length(tod)
   x1 = cos(2*pi*tod/period)
@@ -70,7 +71,7 @@ one_cosinor_OLS = function(tod = time, y = y, alpha = 0.05, period = 24, CI = TR
     CI_A.phase.Scheffe = calculate_CI_A.phase.Scheffe(mat.S.inv, rbind(c(0, 1, 0),
                                                                        c(0, 0, 1)),
                                                       sigma2.hat,
-                                                      est, r.full=3, n, alpha)
+                                                      est, r.full=3, n, alpha, CI.type)
 
     #output
     out = list(M = list(est = m.hat,
@@ -132,103 +133,207 @@ calculate_CI_A.phase.Taylor = function(XX.inv = mat.S.inv, ind.group = 1, phase.
 calculate_CI_A.phase.Scheffe = function(XX.inv = mat.S.inv, A.t = rbind(c(0, 1, 0, 0, 1, 0),
                                                                         c(0, 0, 1, 0, 0, 1)),
                                         sigma2.hat = sigma2.hat,
-                                        est = est,r.full = 6, n = length(tod), alpha){
+                                        est = est,r.full = 6, n = length(tod), alpha, CItype = "conservative"){
+  #CItype = "conservative" or "PlugIn"
+  # XX.inv = mat.S.inv;
+  # A.t = rbind(c(0, 1, 0),
+  #             c(0, 0, 1))
+  # r.full=3
+
   q = Matrix::rankMatrix(A.t)[[1]]
   est2 = A.t%*%est
   beta1.hat = est2[1]
   beta2.hat = est2[2]
   B.inv = solve(A.t%*%XX.inv%*%t(A.t))
   B11 = B.inv[1, 1]; B12 = B.inv[1, 2]; B22 = B.inv[2, 2]
+  R = q*sigma2.hat*stats::qf(1-alpha, q, n-r.full)
 
   C1 = -(B11*beta1.hat+B12*beta2.hat)/(B22*beta2.hat+B12*beta1.hat)
-  C2 = -(q*sigma2.hat*stats::qf(1-alpha, q, n-r.full)-2*B12*beta1.hat*beta2.hat-B11*beta1.hat^2-B22*beta2.hat^2)/(B22*beta2.hat+B12*beta1.hat)
+  C2 = -(R-2*B12*beta1.hat*beta2.hat-B11*beta1.hat^2-B22*beta2.hat^2)/(B22*beta2.hat+B12*beta1.hat)
   D1 = B22*C1^2+B11+2*B12*C1
   D2 = 2*B22*C1*C2+2*B12*C2-(B12*beta1.hat+B22*beta2.hat)*C1-B11*beta1.hat-B12*beta2.hat
   D3 = B22*C2^2-(B12*beta1.hat+B22*beta2.hat)*C2
 
   #calculate CI of phi
   #check if 0 is in ellipse
-  zero.in.ellipse = B11*beta1.hat^2+2*B12*beta1.hat*beta2.hat+B22*beta2.hat^2 < q*sigma2.hat*stats::qf(1-alpha, q, n-r.full)
-  if(!zero.in.ellipse){
-    delta.poly = D2^2-4*D1*D3
-    if(delta.poly<0){
-      phi.lower.limit = list(tan = -99, phase = -99)
-      phi.upper.limit = list(tan = -99, phase = -99)
+  zero.in.ellipse = B11*beta1.hat^2+2*B12*beta1.hat*beta2.hat+B22*beta2.hat^2 < R
+  if(CItype == "conservative"){
+    if(!zero.in.ellipse){
+      delta.poly = D2^2-4*D1*D3
+      if(delta.poly<0){
+        phi.lower.limit = list(tan = -99, phase = -99)
+        phi.upper.limit = list(tan = -99, phase = -99)
+      }else{
+        phi.beta1.roots = c((-D2-sqrt(delta.poly))/(2*D1), (-D2+sqrt(delta.poly))/(2*D1))
+        phi.beta2.roots = C1*phi.beta1.roots+C2
+
+        # phi.limit1 = get_phase(phi.beta1.roots[1], phi.beta2.roots[1])
+        # phi.limit2 = get_phase(phi.beta1.roots[2], phi.beta2.roots[2])
+
+        #change to adjusted phi limits
+        phi.limits = get_phaseForCI(b1.x = beta1.hat, b2.x = beta2.hat,
+                                    b1.r1 = phi.beta1.roots[1], b2.r1 = phi.beta2.roots[1],
+                                    b1.r2 = phi.beta1.roots[2], b2.r2 = phi.beta2.roots[2])
+        phi.lower.limit = phi.limits$phi.lower.limit
+        phi.upper.limit = phi.limits$phi.upper.limit
+      }
     }else{
-      phi.beta1.roots = c((-D2-sqrt(delta.poly))/(2*D1), (-D2+sqrt(delta.poly))/(2*D1))
-      phi.beta2.roots = C1*phi.beta1.roots+C2
-
-      # phi.limit1 = get_phase(phi.beta1.roots[1], phi.beta2.roots[1])
-      # phi.limit2 = get_phase(phi.beta1.roots[2], phi.beta2.roots[2])
-
-      #change to adjusted phi limits
-      phi.limits = get_phaseForCI(b1.x = beta1.hat, b2.x = beta2.hat,
-                                  b1.r1 = phi.beta1.roots[1], b2.r1 = phi.beta2.roots[1],
-                                  b1.r2 = phi.beta1.roots[2], b2.r2 = phi.beta2.roots[2])
-      phi.lower.limit = phi.limits$phi.lower.limit
-      phi.upper.limit = phi.limits$phi.upper.limit
-    }
-  }else{
-    phi.lower.limit = list(tan = 99, phase = 99)
-    phi.upper.limit = list(tan = 99, phase = 99)
-  }
-
-  #calculate CI of A
-  #calculate normal ellipse parameters
-  ellipse.parameters = solve.ellipse.parameters(a = B11, b = B22, c = 2*B12,
-                                                d = -2*(B11*beta1.hat+B12*beta2.hat),
-                                                e = -2*(B12*beta1.hat+B22*beta2.hat),
-                                                f = B11*beta1.hat^2+B22*beta2.hat^2+2*B12*beta1.hat*beta2.hat-q*sigma2.hat*stats::qf(1-alpha, q, n-r.full))
-  angle.point.newOrigin.major =
-    get.angle_point.newOrigin.major(x0 = ellipse.parameters$x0,
-                                    y0 = ellipse.parameters$y0,
-                                    theta.rotate = ellipse.parameters$theta.rotate)
-  r.point.to.center = sqrt(ellipse.parameters$x0^2+ellipse.parameters$y0^2)
-  x.new = r.point.to.center*cos(angle.point.newOrigin.major)
-  y.new = r.point.to.center*sin(angle.point.newOrigin.major)
-
-  #check the position of the new origin to the ellipse
-  if(x.new==0&y.new==0){
-    A.limit1 = ellipse.parameters$minor
-    A.limit2 = ellipse.parameters$major
-  }else if(x.new==0){
-    A.limit1 = abs(ellipse.parameters$minor-y.new)
-    A.limit2 = ellipse.parameters$minor+y.new
-  }else if(y.new==0){
-    A.limit1 = abs(ellipse.parameters$major-x.new)
-    A.limit2 = ellipse.parameters$major+x.new
-  }else if(x.new!=0&y.new!=0){
-    x.new = abs(x.new)
-    y.new = abs(y.new)
-    fun.t = function(t){
-      (ellipse.parameters$major*x.new/(t+ellipse.parameters$major^2))^2+
-        (ellipse.parameters$minor*y.new/(t+ellipse.parameters$minor^2))^2-1
+      phi.lower.limit = list(tan = 99, phase = 99)
+      phi.upper.limit = list(tan = 99, phase = 99)
     }
 
-    # root.upper = 50
-    # while(fun.t(-ellipse.parameters$minor^2+0.0001)*fun.t(root.upper)>0){
-    #   root.upper = root.upper+50
-    # }
-    #    root1 = uniroot(fun.t, c(-ellipse.parameters$minor^2, root.upper),extendInt="downX")$root
-    root1 = stats::uniroot(fun.t, c(-ellipse.parameters$minor^2, -ellipse.parameters$minor^2+50),extendInt="downX")$root
-    x.root1 = ellipse.parameters$major^2*x.new/(root1+ellipse.parameters$major^2)
-    y.root1 = ellipse.parameters$minor^2*y.new/(root1+ellipse.parameters$minor^2)
-    dmin = sqrt((x.new-x.root1)^2+(y.new-y.root1)^2)
+    #calculate CI of A
+    #calculate normal ellipse parameters
+    ellipse.parameters = solve.ellipse.parameters(a = B11, b = B22, c = 2*B12,
+                                                  d = -2*(B11*beta1.hat+B12*beta2.hat),
+                                                  e = -2*(B12*beta1.hat+B22*beta2.hat),
+                                                  f = B11*beta1.hat^2+B22*beta2.hat^2+2*B12*beta1.hat*beta2.hat-q*sigma2.hat*stats::qf(1-alpha, q, n-r.full))
+    angle.point.newOrigin.major =
+      get.angle_point.newOrigin.major(x0 = ellipse.parameters$x0,
+                                      y0 = ellipse.parameters$y0,
+                                      theta.rotate = ellipse.parameters$theta.rotate)
+    r.point.to.center = sqrt(ellipse.parameters$x0^2+ellipse.parameters$y0^2)
+    x.new = r.point.to.center*cos(angle.point.newOrigin.major)
+    y.new = r.point.to.center*sin(angle.point.newOrigin.major)
 
-    # root.lower = -50
-    # while(fun.t(-ellipse.parameters$major^2-0.0001)*fun.t(root.lower)>0){
-    #   root.lower = root.lower-50
-    # }
-    #root2 = uniroot(fun.t, c(root.lower, -ellipse.parameters$major^2-0.0001), extendInt="yes")$root
-    root2 = stats::uniroot(fun.t, c(-ellipse.parameters$major^2-50, -ellipse.parameters$major^2), extendInt="upX")$root
-    # root2 = uniroot(fun.t, c(-ellipse.parameters$major^2-50, -ellipse.parameters$major^2), extendInt="yes")$root
-    # root2 = uniroot(fun.t, c(-ellipse.parameters$major^2-50, -ellipse.parameters$major^2), extendInt="no")$root
-    x.root2 = ellipse.parameters$major^2*x.new/(root2+ellipse.parameters$major^2)
-    y.root2 = ellipse.parameters$minor^2*y.new/(root2+ellipse.parameters$minor^2)
-    dmax = sqrt((x.new-x.root2)^2+(y.new-y.root2)^2)
+    #check the position of the new origin to the ellipse
+    if(x.new==0&y.new==0){
+      A.limit1 = ellipse.parameters$minor
+      A.limit2 = ellipse.parameters$major
+    }else if(x.new==0){
+      A.limit1 = abs(ellipse.parameters$minor-y.new)
+      A.limit2 = ellipse.parameters$minor+y.new
+    }else if(y.new==0){
+      A.limit1 = abs(ellipse.parameters$major-x.new)
+      A.limit2 = ellipse.parameters$major+x.new
+    }else if(x.new!=0&y.new!=0){
+      x.new = abs(x.new)
+      y.new = abs(y.new)
+      fun.t = function(t){
+        (ellipse.parameters$major*x.new/(t+ellipse.parameters$major^2))^2+
+          (ellipse.parameters$minor*y.new/(t+ellipse.parameters$minor^2))^2-1
+      }
 
-    A.limit1 = min(dmin, dmax)
-    A.limit2 = max(dmin, dmax)
+      # root.upper = 50
+      # while(fun.t(-ellipse.parameters$minor^2+0.0001)*fun.t(root.upper)>0){
+      #   root.upper = root.upper+50
+      # }
+      #    root1 = uniroot(fun.t, c(-ellipse.parameters$minor^2, root.upper),extendInt="downX")$root
+      root1 = stats::uniroot(fun.t, c(-ellipse.parameters$minor^2, -ellipse.parameters$minor^2+50),extendInt="downX")$root
+      x.root1 = ellipse.parameters$major^2*x.new/(root1+ellipse.parameters$major^2)
+      y.root1 = ellipse.parameters$minor^2*y.new/(root1+ellipse.parameters$minor^2)
+      dmin = sqrt((x.new-x.root1)^2+(y.new-y.root1)^2)
+
+      # root.lower = -50
+      # while(fun.t(-ellipse.parameters$major^2-0.0001)*fun.t(root.lower)>0){
+      #   root.lower = root.lower-50
+      # }
+      #root2 = uniroot(fun.t, c(root.lower, -ellipse.parameters$major^2-0.0001), extendInt="yes")$root
+      root2 = stats::uniroot(fun.t, c(-ellipse.parameters$major^2-50, -ellipse.parameters$major^2), extendInt="upX")$root
+      # root2 = uniroot(fun.t, c(-ellipse.parameters$major^2-50, -ellipse.parameters$major^2), extendInt="yes")$root
+      # root2 = uniroot(fun.t, c(-ellipse.parameters$major^2-50, -ellipse.parameters$major^2), extendInt="no")$root
+      x.root2 = ellipse.parameters$major^2*x.new/(root2+ellipse.parameters$major^2)
+      y.root2 = ellipse.parameters$minor^2*y.new/(root2+ellipse.parameters$minor^2)
+      dmax = sqrt((x.new-x.root2)^2+(y.new-y.root2)^2)
+
+      A.limit1 = min(dmin, dmax)
+      A.limit2 = max(dmin, dmax)
+    }
+  }else if(CItype=="PlugIn"){
+    if(!zero.in.ellipse){
+      delta.poly = D2^2-4*D1*D3
+      if(delta.poly<0){
+        phi.lower.limit = list(tan = -99, phase = -99)
+        phi.upper.limit = list(tan = -99, phase = -99)
+      }else{
+        #get the roots through the rootSolve package
+        #install.packages("rootSolve")
+        phi.beta1.roots = c((-D2-sqrt(delta.poly))/(2*D1), (-D2+sqrt(delta.poly))/(2*D1))
+        phi.beta2.roots = C1*phi.beta1.roots+C2
+
+        # model = function(x){
+        #   beta1 = x[1]; beta2 = x[2]
+        #   F1 = B11*(beta1-beta1.hat)^2+2*B12*(beta1-beta1.hat)*(beta2-beta2.hat)+B22*(beta2-beta2.hat)^2-R
+        #   F2 = beta1^2+beta2^2-beta1.hat^2-beta2.hat^2
+        #   return(c(F1 = F1, F2 = F2))
+        # }
+        #
+        # start.points = list(c(phi.beta1.roots[1], phi.beta2.roots[1]),
+        #                     c(phi.beta1.roots[2], phi.beta2.roots[2]),
+        #                     c(beta1.hat/2, beta2.hat/2),
+        #                     c(beta1.hat/2, beta2.hat*2),
+        #                     c(beta1.hat*2, beta2.hat/2),
+        #                     c(beta1.hat*2, beta2.hat*2))
+        #
+        # solutions.A.PlugIn = lapply(start.points, function(a){
+        #   res = tryCatch(rootSolve::multiroot(f=model, start = a , maxiter = 100)$root, warning=function(cnd){NA})
+        #   return(res)
+        # })
+        #
+        # dist.solutions = as.matrix(dist(do.call(rbind, solutions.A.PlugIn)))
+        # solution1.A.PlugIn = solutions.A.PlugIn[[1]]
+        # solution2.A.PlugIn = solutions.A.PlugIn[[which(round(dist.solutions[, 1], 1)!=0)[1]]]
+        A.hat2 = sqrt(beta1.hat^2+beta2.hat^2)
+
+        fun = function(phi){
+          B11*A.hat2^2*cos(phi)^2+B22*A.hat2^2*sin(phi)^2+2*B12*A.hat2^2*sin(phi)*cos(phi)-
+            (2*B11*beta1.hat*A.hat2+2*B12*beta2.hat*A.hat2)*cos(phi)-
+            (2*B12*beta1.hat*A.hat2+2*B22*beta2.hat*A.hat2)*sin(phi)+
+            B11*beta1.hat^2+2*B12*beta1.hat*beta2.hat+B22*beta2.hat^2-R
+        }
+        all.solutions = rootSolve::uniroot.all(fun, c(0, 2*pi))
+
+        solution1.A.PlugIn = c(A.hat2*cos(all.solutions[1]), A.hat2*sin(all.solutions[1]))
+        solution2.A.PlugIn = c(A.hat2*cos(all.solutions[2]), A.hat2*sin(all.solutions[2]))
+
+
+        #change to adjusted phi limits
+        phi.limits = get_phaseForCI(b1.x = beta1.hat, b2.x = beta2.hat,
+                                    b1.r1 = solution1.A.PlugIn[1], b2.r1 = solution1.A.PlugIn[2],
+                                    b1.r2 = solution2.A.PlugIn[1], b2.r2 = solution2.A.PlugIn[2])
+        phi.lower.limit = phi.limits$phi.lower.limit
+        phi.upper.limit = phi.limits$phi.upper.limit
+      }
+    }else{
+      phi.lower.limit = list(tan = 99, phase = 99)
+      phi.upper.limit = list(tan = 99, phase = 99)
+    }
+
+    #calculate CI of A
+    #calculate normal ellipse parameters
+    ellipse.parameters = solve.ellipse.parameters(a = B11, b = B22, c = 2*B12,
+                                                  d = -2*(B11*beta1.hat+B12*beta2.hat),
+                                                  e = -2*(B12*beta1.hat+B22*beta2.hat),
+                                                  f = B11*beta1.hat^2+B22*beta2.hat^2+2*B12*beta1.hat*beta2.hat-q*sigma2.hat*stats::qf(1-alpha, q, n-r.full))
+    angle.point.newOrigin.major =
+      get.angle_point.newOrigin.major(x0 = ellipse.parameters$x0,
+                                      y0 = ellipse.parameters$y0,
+                                      theta.rotate = ellipse.parameters$theta.rotate)
+    r.point.to.center = sqrt(ellipse.parameters$x0^2+ellipse.parameters$y0^2)
+    x.new = r.point.to.center*cos(angle.point.newOrigin.major)
+    y.new = r.point.to.center*sin(angle.point.newOrigin.major)
+
+    #check the position of the new origin to the ellipse
+    if(x.new==0&y.new==0){
+      A.limit1 = ellipse.parameters$minor
+      A.limit2 = ellipse.parameters$major
+    }else if(x.new==0){
+      A.limit1 = abs(ellipse.parameters$minor-y.new)
+      A.limit2 = ellipse.parameters$minor+y.new
+    }else if(y.new==0){
+      A.limit1 = abs(ellipse.parameters$major-x.new)
+      A.limit2 = ellipse.parameters$major+x.new
+    }else if(x.new!=0&y.new!=0){
+      x.new = abs(x.new)
+      y.new = abs(y.new)
+      r1.xx2 = ellipse.parameters$major^2*ellipse.parameters$minor^2/(ellipse.parameters$major^2+ellipse.parameters$minor^2*ellipse.parameters$tan.rotate^2)
+      r1 = sqrt(r1.xx2+r1.xx2*ellipse.parameters$tan.rotate^2)
+      dmin = sqrt(x.new^2+y.new^2)-r1
+      dmax = sqrt(x.new^2+y.new^2)+r1
+
+      A.limit1 = min(dmin, dmax)
+      A.limit2 = max(dmin, dmax)
+    }
   }
 
   if(zero.in.ellipse){
@@ -499,5 +604,7 @@ get.angle_point.newOrigin.major = function(x0 = ellipse.parameters$x0,
     }
   }
 }
+
+
 
 

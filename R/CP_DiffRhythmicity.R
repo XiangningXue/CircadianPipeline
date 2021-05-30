@@ -69,7 +69,7 @@ CP_DiffRhythmicity = function(x1 = data1.rhythm, x2 = data2.rhythm, x.joint = jo
         one.gene.data = data.frame(time = c(x1$tod, x2$tod),
                                    measure = c(as.numeric(x1$data[match(overlap.g[a], x1$label), ]),
                                                as.numeric(x2$data[match(overlap.g[a], x2$label), ])),
-                                   group = factor(c(rep(0, length(x1$tod)), rep(1, length(x2$tod)))))
+                                   group = c(rep(0, length(x1$tod)), rep(1, length(x2$tod))))
         return(one.gene.data)
       })
 
@@ -79,14 +79,14 @@ CP_DiffRhythmicity = function(x1 = data1.rhythm, x2 = data2.rhythm, x.joint = jo
       }, parallel, cores)
 
       diffPar.tab = do.call(rbind.data.frame, lapply(two_cosinor.res, function(one.res){
-        as.data.frame(list(delta.M = two.res$g2$M$est-two.res$g1$M$est,
-                           delta.A = two.res$g2$A$est-two.res$g1$A$est,
-                           delta.phase = two.res$g2$phase$est-two.res$g1$phase$est,
-                           delta.peak = two.res$g2$peak-two.res$g1$peak,
-                           p.global = two.res$test$global.pval,
-                           M.ind = two.res$test$M.ind[1],
-                           A.ind = two.res$test$phase.ind[1],
-                           phase.ind = two.res$test$phase.ind[1]))
+        as.data.frame(list(delta.M = one.res$g2$M$est-one.res$g1$M$est,
+                           delta.A = one.res$g2$A$est-one.res$g1$A$est,
+                           delta.phase = one.res$g2$phase$est-one.res$g1$phase$est,
+                           delta.peak = one.res$g2$peak-one.res$g1$peak,
+                           p.global = one.res$test$global.pval,
+                           M.ind = one.res$test$M.ind[1],
+                           A.ind = one.res$test$phase.ind[1],
+                           phase.ind = one.res$test$phase.ind[1]))
       }))
 
       diffPar.tab$q.global = stats::p.adjust(diffPar.tab$p.global, p.adjust.method)
@@ -96,7 +96,7 @@ CP_DiffRhythmicity = function(x1 = data1.rhythm, x2 = data2.rhythm, x.joint = jo
         one.gene.data = data.frame(time = c(x1$tod, x2$tod),
                                    measure = c(as.numeric(x1$data[match(overlap.g[a], x1$label), ]),
                                                as.numeric(x2$data[match(overlap.g[a], x2$label), ])),
-                                   group = factor(c(rep(0, length(x1$tod)), rep(1, length(x2$tod)))))
+                                   group = c(rep(0, length(x1$tod)), rep(1, length(x2$tod))))
         return(one.gene.data)
       })
 
@@ -106,14 +106,14 @@ CP_DiffRhythmicity = function(x1 = data1.rhythm, x2 = data2.rhythm, x.joint = jo
       }, parallel, cores)
 
       diffPar.tab = do.call(rbind.data.frame, lapply(two_cosinor.res, function(one.res){
-        as.data.frame(list(delta.M = two.res$g2$M$est-two.res$g1$M$est,
-                           delta.A = two.res$g2$A$est-two.res$g1$A$est,
-                           delta.phase = two.res$g2$phase$est-two.res$g1$phase$est,
-                           delta.peak = two.res$g2$peak-two.res$g1$peak,
-                           p.global = two.res$test$global.pval,
-                           M.ind = two.res$test$M.ind[2],
-                           A.ind = two.res$test$phase.ind[2],
-                           phase.ind = two.res$test$phase.ind[2]))
+        as.data.frame(list(delta.M = one.res$g2$M$est-one.res$g1$M$est,
+                           delta.A = one.res$g2$A$est-one.res$g1$A$est,
+                           delta.phase = one.res$g2$phase$est-one.res$g1$phase$est,
+                           delta.peak = one.res$g2$peak-one.res$g1$peak,
+                           p.global = one.res$test$global.pval,
+                           M.ind = one.res$test$M.ind[2],
+                           A.ind = one.res$test$phase.ind[2],
+                           phase.ind = one.res$test$phase.ind[2]))
       }))
 
       diffPar.tab$q.global = stats::p.adjust(diffPar.tab$p.global, p.adjust.method)
@@ -144,6 +144,7 @@ CP_DiffRhythmicity = function(x1 = data1.rhythm, x2 = data2.rhythm, x.joint = jo
       }))
 
       diffPar.tab = cbind.data.frame(label = overlap.g, diffPar.tab)
+      diffPar.tab = diffPar.adjust(diffPar.tab,  p.adjust.method, alpha)
       # circa.res.plot = lapply(1:length(circa.res), function(a){
       #   p = circa.res[[a]][[1]]+ggtitle(paste0(overlap.g[a]))
       #   return(p)
@@ -154,9 +155,10 @@ CP_DiffRhythmicity = function(x1 = data1.rhythm, x2 = data2.rhythm, x.joint = jo
         message(paste0("Directory has been created. Permutation results will be saved in ", permutation.save))
       }
       diffPar.tab = diff_rhythmicity_permutation(x1, x2, overlap.g, period, nPermutation, permutation.save, permutation.file.label, parallel, cores)
+      diffPar.tab = diffPar.adjust(diffPar.tab,  p.adjust.method, alpha)
     }
 
-    diffPar.tab = diffPar.adjust(diffPar.tab,  p.adjust.method, alpha)
+
 
     #differential R2 test
     overlap.g = x.joint$Rhythmic.GT.One

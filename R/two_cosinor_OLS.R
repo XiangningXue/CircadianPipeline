@@ -22,12 +22,22 @@
 #' @examples
 #' #Simulate a time series data with 20 time points
 #'
-#' x.time = runif(20, min = 0, max = 24)
-#' m = 5; A = 3; phase = pi/4; sigma = 1
-#' y = m+A*cos(2*pi/24*x.time+phase)+rnorm(20, 0, sigma)
-#' est = one_cosinor_OLS(tod = x.time, y = y, alpha = 0.05, period = 24)
+#'B = 1
+#'x1.time = runif(30, min = 0, max = 24)
+#'x2.time = runif(30, min = 0, max = 24)
+#'m1 = rnorm(B, 5); A1 = rnorm(B, 3); phase1 = runif(B, min = 0, max = 24); sigma = 1
+#'m2 = m1; A2 = A1; phase2 = phase1
 #'
-two_cosinor_OLS = function(tod = time, y = y, group, alpha = 0.05, period = 24){
+#'noise.mat1 = matrix(rnorm(B*30, 0, sigma), ncol = 30, nrow = B)
+#'signal.mat1 = t(sapply(1:B, function(a){m1[a]+A1[a]*cos(2*pi/24*(x1.time+phase1[a]))}))
+#'noise.mat2 = matrix(rnorm(B*30, 0, sigma), ncol = 30, nrow = B)
+#'signal.mat2 = t(sapply(1:B, function(a){m2[a]+A2[a]*cos(2*pi/24*(x2.time+phase2[a]))}))
+#'
+#'tod = c(x1.time, x2.time)
+#'y = c(noise.mat1+signal.mat1, noise.mat2+signal.mat2)
+#'group = c(rep(0, 30), rep(1, 30))
+#'
+two_cosinor_OLS = function(tod = time, y = y, group, alpha = 0.05, period = 24, CI.type = "delta"){
 
   #alpha is the critical level for equal tailed CI
   n = length(tod)
@@ -36,19 +46,18 @@ two_cosinor_OLS = function(tod = time, y = y, group, alpha = 0.05, period = 24){
   x3 = group*x1
   x4 = group*x2
 
-  mat.X = matrix(c(rep(1, n), x1, x2, group,x3, x4), ncol = 6, byrow = FALSE)
-  mat.S = t(mat.X)%*%mat.X
-  # mat.XX = t(mat.X)%*%mat.X#mat.XX = mat.S
-  # mat.S = matrix(c(n, sum(x1), sum(x2),
-  #                  sum(x1), sum(x1^2), sum(x1*x2),
-  #                  sum(x2), sum(x1*x2), sum(x2^2)),
-  #                nrow = 3, byrow = TRUE)
-  #vec.d = c(sum(y), sum(y*x1), sum(y*x2))
-  vec.d = t(mat.X)%*%y
+  fit.full = fitOLS(y, cbind(rep(1, n), x1, x2, group,x3, x4),n)
+  fit.reduced = fitOLS(y, cbind(rep(1, n), x1, x2), n)
 
-  #estimates for group 1
-  mat.S.inv = solve(mat.S)
-  est = mat.S.inv%*%vec.d
+  #global test
+  Fstat = ((fit.reduced$RSS-fit.full$RSS)/(fit.full$r-fit.reduced$r))/(fit.full$RSS/(n-fit.reduced$r))
+  pval = stats::pf(Fstat, fit.full$r-fit.reduced$r, n-fit.reduced$r, lower.tail = FALSE)
+  sigma2.hat = fit.full$RSS/(n-fit.reduced$r)
+  sigma.hat = sqrt(sigma2.hat)
+
+  #individual test
+  est = fit.full$est
+  mat.S.inv = fit.full$var
   m.hat = est[1]
   beta1.hat = est[2]
   beta2.hat = est[3]
@@ -72,19 +81,6 @@ two_cosinor_OLS = function(tod = time, y = y, group, alpha = 0.05, period = 24){
   phase2.hat = phase2.res$phase
   peak2 <- (period-period*phase2.hat/(2*pi))%%period
 
-  #inference
-  TSS = sum((y-mean(y))^2)
-  yhat1 = m.hat + beta1.hat*x1+beta2.hat*x2 #prediction from partial model
-  yhat2 = m.hat + beta1.hat*x1+beta2.hat*x2 + dm.hat*group + dbeta1.hat*x3+dbeta2.hat*x4
-  RSS1 = sum((y-yhat1)^2)
-  RSS2 = sum((y-yhat2)^2)
-  MSS1 = TSS-RSS1
-  MSS2 = TSS-RSS2
-  Fstat = ((RSS1-RSS2)/3)/(RSS2/(n-6))
-  pval = stats::pf(Fstat, 3, n-6, lower.tail = FALSE)
-  sigma2.hat = RSS2/(n-6)
-  sigma.hat = sqrt(sigma2.hat)
-
   CI.m1.hat.radius = calculate_CI.M(mat.S.inv, A.t = matrix(c(1, 0, 0, 0, 0, 0), nrow = 1),
                             r.full = 6, n = length(tod), alpha, sigma.hat = sigma.hat)
   CI.m2.hat.radius = calculate_CI.M(mat.S.inv, A.t = matrix(c(1, 0, 0, 1, 0, 0), nrow = 1),
@@ -107,6 +103,9 @@ two_cosinor_OLS = function(tod = time, y = y, group, alpha = 0.05, period = 24){
   M.overlap_CI1_est2 = CI1_est2_overlap(c(m1.hat-CI.m1.hat.radius, m1.hat+CI.m1.hat.radius), m2.hat)
   A.overlap_CI1_est2 = CI1_est2_overlap(CI_A.phase.Scheffe.group1$CI_A, A2.hat)
   phase.overlap_CI1_est2 = CI1_est2_overlap(CI_A.phase.Scheffe.group1$CI_phase, phase2.hat)
+  M.overlap_CIdelta1_est2 = CI1_est2_overlap(c(m1.hat-CI.m1.hat.radius, m1.hat+CI.m1.hat.radius), m2.hat)
+  A.overlap_CIdelta1_est2 = CI1_est2_overlap(c(A1.hat-stats::qt(1-alpha/2, n-6)*se.hat.group1$se.A.hat, A1.hat+stats::qt(1-alpha/2, n-6)*se.hat.group1$se.A.hat), A2.hat)
+  phase.overlap_CIdelta1_est2 = CI1_est2_overlap(c(phase1.hat-stats::qt(1-alpha/2, n-6)*se.hat.group1$se.phase.hat, phase1.hat+stats::qt(1-alpha/2, n-6)*se.hat.group1$se.phase.hat), phase2.hat)
 
   #output
   out = list(g1 = list(M = list(est = m1.hat,
@@ -136,9 +135,9 @@ two_cosinor_OLS = function(tod = time, y = y, group, alpha = 0.05, period = 24){
                                     CI_phase = CI_A.phase.Scheffe.group2$CI_phase), #conservative CI
                        peak = peak2),
              test = list(global.pval = pval,
-                         M.ind = c(M.overlap, M.overlap_CI1_est2),
-                         A.ind = c(A.overlap, A.overlap_CI1_est2),
-                         phase.ind = c(phase.overlap, phase.overlap_CI1_est2)))
+                         M.ind = c(M.overlap, M.overlap_CI1_est2, M.overlap_CIdelta1_est2),
+                         A.ind = c(A.overlap, A.overlap_CI1_est2, A.overlap_CIdelta1_est2),
+                         phase.ind = c(phase.overlap, phase.overlap_CI1_est2, A.overlap_CIdelta1_est2)))
   return(out)
 
 }
@@ -159,6 +158,22 @@ two_cosinor_OLS = function(tod = time, y = y, group, alpha = 0.05, period = 24){
 # #then
 # xx.inv = solve(t(xx1)%*%xx1)
 # solve(A.t%*%xx.inv%*%t(A.t)) #still the same
+
+#F-test for the model
+fitOLS = function(y = y, mat.X = cbind(rep(1, n), x1, x2, group,x3, x4), n = nrow(tod)){
+  mat.S = t(mat.X)%*%mat.X
+  vec.d = t(mat.X)%*%y
+  mat.S.inv = solve(mat.S)
+  est = mat.S.inv%*%vec.d
+
+  #inference
+  yhat = mat.X%*%est
+  RSS = sum((y-yhat)^2)
+  return(list(est = est,
+              var = mat.S.inv,
+              RSS = RSS,
+              r = ncol(mat.X)))
+}
 
 CI_overlap = function(CI1 = c(1, 1.4), CI2 = c(1.5, 2)){
   ind1 = (CI1[1]>CI2[1])&(CI1[1]<CI2[2])

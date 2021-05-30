@@ -39,9 +39,19 @@ For group 2 the formula can be converted to \deqn{y = M2+A2(cos(2\pi/24*t+phase2
 \examples{
 #Simulate a time series data with 20 time points
 
-x.time = runif(20, min = 0, max = 24)
-m = 5; A = 3; phase = pi/4; sigma = 1
-y = m+A*cos(2*pi/24*x.time+phase)+rnorm(20, 0, sigma)
-est = one_cosinor_OLS(tod = x.time, y = y, alpha = 0.05, period = 24)
+B = 1
+x1.time = runif(30, min = 0, max = 24)
+x2.time = runif(30, min = 0, max = 24)
+m1 = rnorm(B, 5); A1 = rnorm(B, 3); phase1 = runif(B, min = 0, max = 24); sigma = 1
+m2 = m1; A2 = A1; phase2 = phase1
+
+noise.mat1 = matrix(rnorm(B*30, 0, sigma), ncol = 30, nrow = B)
+signal.mat1 = t(sapply(1:B, function(a){m1[a]+A1[a]*cos(2*pi/24*(x1.time+phase1[a]))}))
+noise.mat2 = matrix(rnorm(B*30, 0, sigma), ncol = 30, nrow = B)
+signal.mat2 = t(sapply(1:B, function(a){m2[a]+A2[a]*cos(2*pi/24*(x2.time+phase2[a]))}))
+
+tod = c(x1.time, x2.time)
+y = c(noise.mat1+signal.mat1, noise.mat2+signal.mat2)
+group = c(rep(0, 30), rep(1, 30))
 
 }
