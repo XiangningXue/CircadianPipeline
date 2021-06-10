@@ -4,7 +4,14 @@
 \alias{two_cosinor_OLS}
 \title{Title Fit two-component cosinor with OLS for one gene}
 \usage{
-two_cosinor_OLS(tod = time, y = y, group, alpha = 0.05, period = 24)
+two_cosinor_OLS(
+  tod = time,
+  y = y,
+  group,
+  alpha = 0.05,
+  period = 24,
+  CI.type = "delta"
+)
 }
 \arguments{
 \item{tod}{a numeric vector. Time of death (e.g. time of expression of the gene). length should be the same as y}
