@@ -1,5 +1,5 @@
 CP_DiffR2 = function(x1 = data1.rhythm, x2 = data2.rhythm, x.joint = joint.rhythm, period=24, method = "LR",
-                     nSampling=1000, Sampling.load = TRUE,  Sampling.save = getwd(), Sampling.file.label = "Group1",
+                     nSampling=1000, Sampling.load = FALSE,  Sampling.save = "NULL", Sampling.file.label = "Group1",
                      alpha = 0.05,  p.adjust.method = "BH", parallel = FALSE, cores = 5){
 
 
@@ -24,6 +24,7 @@ CP_DiffR2 = function(x1 = data1.rhythm, x2 = data2.rhythm, x.joint = joint.rhyth
                                            tt2 = x2$tod, yy2 = as.numeric(x2$data[a, ]),
                                            FN = TRUE)
       one.res.tab = data.frame(delta.R2 = x2$rhythm$R2[a]-x1$rhythm$R2[a], pvalue = one.res)
+      colnames(one.res.tab)[colnames(one.res.tab)=="pvalue"]="p.R2"
       return(one.res.tab)
     })
     diffR2.tab = do.call(rbind.data.frame, res.list)
@@ -37,7 +38,7 @@ CP_DiffR2 = function(x1 = data1.rhythm, x2 = data2.rhythm, x.joint = joint.rhyth
     diffR2.tab = diff.tab[, c("delta.R2", "p.R2", "label")]
 
   }
-  diffR2.tab$qvalue = stats::p.adjust(diffR2.tab$pvalue, p.adjust.method)
+  diffR2.tab$q.R2 = stats::p.adjust(diffR2.tab$p.R2, p.adjust.method)
   return(diffR2 = diffR2.tab)
 
 }
