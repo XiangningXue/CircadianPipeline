@@ -39,6 +39,7 @@
 #'
 #' #diffRhythm.res = CP_DiffRhythmicity(x1.Rhythm, x2.Rhythm, x.joint)
 #'
+
 CP_DiffRhythmicity = function(x1 = data1.rhythm, x2 = data2.rhythm, x.joint = joint.rhythm, period=24,
                               diffPar.method = "circacompare", diffPar.adjust = adj_minP,
                               diffR2.method = "LR",

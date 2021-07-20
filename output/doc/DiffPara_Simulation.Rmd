@@ -1,0 +1,91 @@
+---
+title: "diffParameter test adjustment simulation"
+author: "XiangningXue"
+date: "6/18/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      eval=FALSE)
+```
+
+## Simulation setting 
+
+  * Number of genes that are rhythmic in both groups = 1000
+    + 650 genes with no parameter change between groups 
+    + 50 genes with MESOR changed  (note that we use MESOR and offset interchangeably)
+    + 50 genes with amplitude changed only
+    + 50 genes with phase changed only
+    + 50 genes with both amplitude and phase changed
+    + 50 genes with both amplitude and MESOR changed
+    + 50 genes with both phase and MESOR changed
+    + 50 genes with all amplitude, phase and MESOR changed
+    + <span style="color: red;">number of total genes and distribution of genes in each categories can be changed</span>
+  * Sample size = 20 in both groups. 
+  * Control group parameters 
+    + sd = 1
+    + $A \sim \operatorname{unif}(1, 3)$
+    + phase $ \sim \operatorname{unif}(1, 2\pi)$
+    + MESOR $ \sim \operatorname{unif}(5, 10)$
+  * Effect size for differential parameters
+    + A2 = 1.5*A1
+    + phase2 = phase1+0.5$\pi$
+    + MESOR2 = 1.25MESOR1
+  
+## Benchmark
+
+The performance of the adjusting methods are benchmarked by the FDR and recall. 
+
+  * FDR.global = $\frac{\text{{genes with observed change in any parameters}}\bigcap\text{{genes in truth with no change in any parameters}}}{\text{{genes with observed change in any parameters}}}$
+  * FDR.A = $\frac{\text{{genes with observed change in A}}\bigcap\text{{genes in truth with no change in A}}}{\text{{genes with observed change in A}}}$
+  * FDR.MESOR = $\frac{\text{{genes with observed change in MESOR}}\bigcap\text{{genes in truth with no change in MESOR}}}{\text{{genes with observed change in MESOR}}}$
+  * FDR.phase = $\frac{\text{{genes with observed change in phase}}\bigcap\text{{genes in truth with no change in phase}}}{\text{{genes with observed change in phase}}}$
+  * Recall.global = $\frac{\text{{genes with observed change in any parameters}}\bigcap\text{{genes in truth with change in any parameters}}}{\text{{genes in truth with change in any parameters}}}$
+  * Recall.A, Recall.phase, Recall.MESOR...
+  
+
+## Simulation 
+
+The simulation has three steps: 
+
+  * Simulate data as described by the setting
+  * Run differential parameter tests (separate tests, not global test)
+  * Run each adjustment method on the simulated data
+  * Benchmark the performance of each method by calculating FDR and recall (in the code I also calculated F score)
+  
+### Simulate data
+```{r}
+source("diffRhyth_global_bonforroni_c1_simdata.R")
+```
+
+Notice that in the code I started by simulating 3000 genes, where 1000 of them are rhythmic in both groups and 2000 are rhythmic only in one of the groups. This is becuase I intended to also use the same code for comparing differential $R^2$. In the current simulation only the 1000 genes that are rhythmic in both groups are used. 
+
+### Run seperate differential parameter tests
+
+```{r}
+source("diffRhyth_global_bonforroni_c2_run_circacompare.R")
+```
+
+Here circacompare is used because it is fast. Permutation test could be used as an alternative. 
+
+### Run adjustment tests
+
+```{r}
+source("diffRhyth_global_bonforroni_c3a_run_1bonforoni2BH3single.R")
+source("diffRhyth_global_bonforroni_c3b0_run_1BH2bonferroni_version2.R")
+source("diffRhyth_global_bonforroni_c3b_run_1BH2bonferroni.R") #no need to run 
+source("diffRhyth_global_bonforroni_c3c0_run_BH_version2.R")
+source("diffRhyth_global_bonforroni_c3c_run_BH.R") #no need to run 
+source("diffRhyth_global_bonforroni_c3d_run_AWFisher.R")
+```
+
+### Benchmark the performance
+
+```{r}
+source("diffRhyth_global_bonforroni_c4_compareFDR_Version2.R")
+```
+
+
+
+    
