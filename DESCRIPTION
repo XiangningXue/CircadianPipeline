@@ -22,4 +22,9 @@ Imports:
     Matrix,
     purrr,
     stats,
-    utils
+    utils,
+    ggplot2,
+    gridExtra,
+    rootSolve,
+    grDevices,
+    graphics

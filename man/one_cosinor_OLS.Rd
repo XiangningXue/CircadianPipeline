@@ -23,6 +23,8 @@ one_cosinor_OLS(
 \item{period}{The length of the rhythmicity cycle. When it is 24 (default), the signal is circadian.}
 
 \item{CI}{If return CI}
+
+\item{CI.type}{"conservative": a convervative CI will be returned; "delta": CI calculated with sd derived with delta method and the plug in estimate will be returned.}
 }
 \value{
 {M}{A list of OLS estimate of M and the lower and upper limit of M corresponding to the critical level alpha}

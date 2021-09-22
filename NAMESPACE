@@ -2,6 +2,8 @@
 
 export(CP_DiffRhythmicity)
 export(CP_JointRhythmicity)
+export(CP_PlotFittedCosinor)
+export(CP_ResidualDiagnostics)
 export(CP_Rhythmicity)
 export(fitCosCurve)
 export(one_cosinor_OLS)

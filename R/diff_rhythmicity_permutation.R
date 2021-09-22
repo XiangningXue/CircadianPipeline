@@ -56,9 +56,9 @@ diff_rhythmicity_permutation = function(x1 = x1, x2 = x2, subset = x.joint$Rhyth
                                                            one.x2.perm.tab$peak-period-one.x1.perm.tab$peak)),
                           R2_null = one.x2.perm.tab$R2-one.x1.perm.tab$R2)
 
-    if(permutation.save!="NULL"){
+    if(!is.null(permutation.save)){
       save(one.x1.perm.tab, one.x2.perm.tab, index1, index2, overlap.g,
-           file = paste0(file.path(permutation.save, paste0(permutation.file.label, "_PermBetween", b, ".rRata"))))
+           file = paste0(file.path(permutation.save, paste0(permutation.file.label, "_PermBetween", b, ".rData"))))
     }
 
     if(b%%(B/100)==0){
@@ -112,7 +112,7 @@ diff_rhythmicity_permutation = function(x1 = x1, x2 = x2, subset = x.joint$Rhyth
                    #p.peak = ap_peak_allGene, #p for permutaiton p for peak and phase are almost the same, no need for both
                    delta.R2 = R2_obs,
                    p.R2 = ap_R2_allGene)
-  if(permutation.save!="NULL"){
+  if(!is.null(permutation.save)){
     write.csv(out, paste0(file.path(permutation.save, paste0(permutation.file.label, "_PermBetween", "_out", ".csv"))))
   }
   return(out)

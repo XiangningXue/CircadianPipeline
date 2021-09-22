@@ -23,9 +23,11 @@
 #' noise.mat2 = matrix(rnorm(100*20, 0, sigma), ncol = 20, nrow = 100)
 #' signal.mat2 = t(sapply(1:100, function(a){m2[a]+A2[a]*cos(2*pi/24*x2.time+phase2[a])}))
 #'
-#' x1 = list(data = noise.mat1 + signal.mat1, tod = x1.time, label = paste("gene", seq_len(100)))
+#' x1 = list(data = as.data.frame(noise.mat1 + signal.mat1),
+#' tod = x1.time, label = paste("gene", seq_len(100)))
 #' x1.Rhythm = CP_Rhythmicity(x1, parallel = FALSE)
-#' x2 = list(data = noise.mat2 + signal.mat2, tod = x2.time, label = paste("gene", seq_len(100)))
+#' x2 = list(data = as.data.frame(noise.mat2 + signal.mat2),
+#' tod = x2.time, label = paste("gene", seq_len(100)))
 #' x2.Rhythm = CP_Rhythmicity(x2, parallel = FALSE)
 #'
 #' x.joint = CP_JointRhythmicity(x1.Rhythm, x2.Rhythm, method = "AW-Fisher",
@@ -61,6 +63,13 @@ CP_JointRhythmicity = function(x1 = data1.rhythm, x2 = data2.rhythm, method = "A
   if(length(overlap.g)==0){
     stop("There is no overlapping genes between the two data sets. Please check labels. ")
   }
+
+  p1 = x1$rhythm$P[match(overlap.g, x1$label)]
+  p2 = x2$rhythm$P[match(overlap.g, x2$label)]
+  if(!(all(p1==p2))){
+    warning("Periods are not the same for all the genes in x1 and x2. ")
+  }
+
   if(method == "AW-Fisher"){
     data1.pvalue = x1$rhythm$pvalue[match(overlap.g, x1$label)]
     data2.pvalue = x2$rhythm$pvalue[match(overlap.g, x2$label)]

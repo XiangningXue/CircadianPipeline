@@ -1,5 +1,5 @@
 CP_DiffR2 = function(x1 = data1.rhythm, x2 = data2.rhythm, x.joint = joint.rhythm, period=24, method = "LR",
-                     nSampling=1000, Sampling.load = FALSE,  Sampling.save = "NULL", Sampling.file.label = "Group1",
+                     nSampling=1000, Sampling.load = FALSE,  Sampling.save = NULL, Sampling.file.label = "Group1",
                      alpha = 0.05,  p.adjust.method = "BH", parallel = FALSE, cores = 5){
 
 
@@ -12,7 +12,7 @@ CP_DiffR2 = function(x1 = data1.rhythm, x2 = data2.rhythm, x.joint = joint.rhyth
   overlap.g = x.joint$Rhythmic.GT.One
 
   if(method == "permutation"){
-    if((Sampling.save!="NULL")&!dir.exists(Sampling.save)){
+    if((!is.null(Sampling.save))&!dir.exists(Sampling.save)){
       dir.create(file.path(Sampling.save), recursive = TRUE)
       message(paste0("Directory has been created. Sampling results will be saved in ", Sampling.save))
     }
@@ -30,7 +30,7 @@ CP_DiffR2 = function(x1 = data1.rhythm, x2 = data2.rhythm, x.joint = joint.rhyth
     diffR2.tab = do.call(rbind.data.frame, res.list)
     diffR2.tab = cbind.data.frame(label = overlap.g, diffR2.tab)
   }else if(method == "bootstrap"){
-    if((Sampling.save!="NULL")&!dir.exists(Sampling.save)){
+    if((!is.null(Sampling.save))&!dir.exists(Sampling.save)){
       dir.create(file.path(Sampling.save), recursive = TRUE)
       message(paste0("Directory has been created. Sampling results will be saved in ", Sampling.save))
     }

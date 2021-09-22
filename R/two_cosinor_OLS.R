@@ -9,6 +9,7 @@
 #' @param group A vector indicating the group label. 0 for group 1 and 1 for group 2.
 #' @param alpha a number between 0 to 1. The critical level for the confidence interval
 #' @param period The length of the rhythmicity cycle. When it is 24 (default), the signal is circadian.
+#' @param CI.type "conservative": a convervative CI will be returned; "delta": CI calculated with sd derived with delta method and the plug in estimate will be returned.
 #'
 #' @return {M1}{A list of OLS estimate of M1 and the lower and upper limit of M1 corresponding to the critical level alpha}
 #' @return {A1}{A list of estimate of A1, sd of A1 and the lower and upper limit of A1 corresponding to the critical level alpha}

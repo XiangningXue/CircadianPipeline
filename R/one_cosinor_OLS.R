@@ -8,6 +8,7 @@
 #' @param alpha a number between 0 to 1. The critical level for the confidence interval
 #' @param period The length of the rhythmicity cycle. When it is 24 (default), the signal is circadian.
 #' @param CI If return CI
+#' @param CI.type "conservative": a convervative CI will be returned; "delta": CI calculated with sd derived with delta method and the plug in estimate will be returned.
 #'
 #' @return {M}{A list of OLS estimate of M and the lower and upper limit of M corresponding to the critical level alpha}
 #' @return {A}{A list of estimate of A, sd of A and the lower and upper limit of A corresponding to the critical level alpha}
@@ -71,21 +72,24 @@ one_cosinor_OLS = function(tod = time, y = y, alpha = 0.05, period = 24, CI = TR
     CI_A.phase.Scheffe = calculate_CI_A.phase.Scheffe(mat.S.inv, rbind(c(0, 1, 0),
                                                                        c(0, 0, 1)),
                                                       sigma2.hat,
-                                                      est, r.full=3, n, alpha, CI.type)
-
+                                                      est, r.full=3, n, alpha, "PlugIn") #The PlutIn CI is conservative enough.
+    if(CI.type=="conservative"){
+      a.CI = CI_A.phase.Scheffe
+    }else{
+      a.CI = list(CI_A = c(A.hat-stats::qt(1-alpha/2, n-3)*se.hat.A.phase$se.A.hat, A.hat+stats::qt(1-alpha/2, n-3)*se.hat.A.phase$se.A.hat),
+                  CI_phase = c(phase.hat-stats::qt(1-alpha/2, n-3)*se.hat.A.phase$se.phase.hat, phase.hat+stats::qt(1-alpha/2, n-3)*se.hat.A.phase$se.phase.hat))
+    }
     #output
     out = list(M = list(est = m.hat,
                         CI_M = c(m.hat-CI.m.hat.radius, m.hat+CI.m.hat.radius)),
                A = list(est = A.hat,
                         sd = se.hat.A.phase$se.A.hat,
-                        CI_A_delta = c(A.hat-stats::qt(1-alpha/2, n-3)*se.hat.A.phase$se.A.hat, A.hat+stats::qt(1-alpha/2, n-3)*se.hat.A.phase$se.A.hat),
-                        CI_A = CI_A.phase.Scheffe$CI_A), #conservative CI
+                        CI_A = a.CI$CI_A), #conservative CI
                phase = list(est = phase.hat,
                             sd = se.hat.A.phase$se.phase.hat,
-                            CI_phase_delta = c(phase.hat-stats::qt(1-alpha/2, n-3)*se.hat.A.phase$se.phase.hat, phase.hat+stats::qt(1-alpha/2, n-3)*se.hat.A.phase$se.phase.hat),
                             #tan = phase.res$tan,
                             #CI_tan = c(phi.lower.limit$tan, phi.upper.limit$tan),
-                            CI_phase = CI_A.phase.Scheffe$CI_phase), #conservative CI
+                            CI_phase = a.CI$CI_phase), #conservative CI
                peak = peak,
                test = list(Fstat = Fstat,
                            pval = pval,

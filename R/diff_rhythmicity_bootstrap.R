@@ -61,9 +61,9 @@ diff_rhythmicity_bootstrap = function(x1 = x1, x2 = x2, subset = x.joint$Rhythmi
                                                            one.x2.boot.tab$peak-period-one.x1.boot.tab$peak)),
                           R2_null = one.x2.boot.tab$R2-one.x1.boot.tab$R2)
 
-    if(Sampling.save!="NULL"){
+    if(!is.null(Sampling.save)){
       save(one.x1.boot.tab, one.x2.boot.tab, index1, index2, overlap.g,
-           file = paste0(file.path(Sampling.save, paste0(Sampling.file.label, "_Bootstrap", b, ".rRata"))))
+           file = paste0(file.path(Sampling.save, paste0(Sampling.file.label, "_Bootstrap", b, ".rData"))))
     }
 
     if(b%%(B/100)==0){
@@ -117,7 +117,7 @@ diff_rhythmicity_bootstrap = function(x1 = x1, x2 = x2, subset = x.joint$Rhythmi
                    #p.peak = ap_peak_allGene, #p for bootutaiton p for peak and phase are almost the same, no need for both
                    delta.R2 = R2_obs,
                    p.R2 = ap_R2_allGene)
-  if(Sampling.save!="NULL"){
+  if(!is.null(Sampling.save)){
     write.csv(out, paste0(file.path(Sampling.save, paste0(Sampling.file.label, "_Bootstrap", "_out", ".csv"))))
   }
   return(out)

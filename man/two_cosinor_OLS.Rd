@@ -23,6 +23,8 @@ two_cosinor_OLS(
 \item{alpha}{a number between 0 to 1. The critical level for the confidence interval}
 
 \item{period}{The length of the rhythmicity cycle. When it is 24 (default), the signal is circadian.}
+
+\item{CI.type}{"conservative": a convervative CI will be returned; "delta": CI calculated with sd derived with delta method and the plug in estimate will be returned.}
 }
 \value{
 {M1}{A list of OLS estimate of M1 and the lower and upper limit of M1 corresponding to the critical level alpha}

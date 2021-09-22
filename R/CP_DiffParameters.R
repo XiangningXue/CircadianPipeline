@@ -1,5 +1,5 @@
-CP_DiffRhythmicity = function(x1 = data1.rhythm, x2 = data2.rhythm, x.joint = joint.rhythm, period=24, method = "circacompare",
-                             nPermutation=1000, permutation.load = TRUE,  permutation.save = getwd(), permutation.file.label = "Group1",
+CP_DiffParameters = function(x1 = data1.rhythm, x2 = data2.rhythm, x.joint = joint.rhythm, period=24, method = "circacompare",
+                             nSampling=1000, Sampling.load = TRUE,  Sampling.save = getwd(), Sampling.file.label = "Group1",
                              alpha = 0.05,  p.adjust.method = "BH", parallel = FALSE, cores = 5){
   overlap.g = x.joint$Rhythmic.Both
 
@@ -32,11 +32,11 @@ CP_DiffRhythmicity = function(x1 = data1.rhythm, x2 = data2.rhythm, x.joint = jo
     #   return(p)
     # })
   }else if(method == "permutation"){
-    if((permutation.save!="NULL")&!dir.exists(permutation.save)){
-      dir.create(file.path(permutation.save), recursive = TRUE)
-      message(paste0("Directory has been created. Permutation results will be saved in ", permutation.save))
+    if((!is.null(Sampling.save))&!dir.exists(Sampling.save)){
+      dir.create(file.path(Sampling.save), recursive = TRUE)
+      message(paste0("Directory has been created. Permutation results will be saved in ", Sampling.save))
     }
-    diff_rhythmicity_permutation(x1, x2, x.joint, period, nPermutation, permutation.save, permutation.file.label, parallel, cores)
+    diff_rhythmicity_permutation(x1, x2, x.joint, period, nSampling, Sampling.save, Sampling.file.label, parallel, cores)
   }
 
   #do correction

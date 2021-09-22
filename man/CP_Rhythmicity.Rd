@@ -18,7 +18,7 @@ CP_Rhythmicity(
 )
 }
 \arguments{
-\item{x}{A list containing the following component: data: dataframe or matrix with rows of genes and columns of samples; tod: time of death or time of expression corresponding to the columns in data component; label: the gene names or other labels of the genes}
+\item{x}{A list containing the following component: data: dataframe with rows of genes and columns of samples; tod: time of death or time of expression corresponding to the columns in data component; label: the gene names or other labels of the genes}
 
 \item{period}{The length of the rhythmicity cycle. When it is 24, the signal is circadian.}
 
@@ -42,7 +42,7 @@ CP_Rhythmicity(
 A rhythm object, which is a list of original components in input x and rhythmicity results
 }
 \description{
-This function fit the expression and time to this function \deqn{y = M+A(cos(2\pi/24*t+phase))+\epsilon}, where \eqn{\epsilon \sim N(0, \sigma^2)}.
+This function fit the expression and time to this function \deqn{y = M+A*cos(2\pi/24*t+phase)+\epsilon}, where \eqn{\epsilon \sim N(0, \sigma^2)}.
 }
 \examples{
 #Simulate a time series data with 20 time points and 100 genes
@@ -51,7 +51,9 @@ x.time = runif(20, min = 0, max = 24)
 m = rnorm(100, 5); A = rnorm(100, 3); phase = runif(100, min = 0, max = 2*pi); sigma = 1
 noise.mat = matrix(rnorm(100*20, 0, sigma), ncol = 20, nrow = 100)
 signal.mat = t(sapply(1:100, function(a){m[a]+A[a]*cos(2*pi/24*x.time+phase[a])}))
-x = list(data = noise.mat + signal.mat, tod = x.time, label = paste("gene", seq_len(100)))
+x = list(data = as.data.frame(noise.mat + signal.mat),
+tod = x.time,
+label = paste("gene", seq_len(100)))
 x.Rhythm = CP_Rhythmicity(x, parallel = FALSE)
 
 
