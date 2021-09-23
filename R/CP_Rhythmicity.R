@@ -44,6 +44,9 @@ CP_Rhythmicity = function(x = list(data = data1, tod = tod, label = label),
   if(nrow(X)!=length(g)){
     stop("Number of labels does not match number of feature in data. ")
   }
+  if(!is.numeric(t)){
+    stop("Time must be numeric")
+  }
 
   if(method == "OLS"){
     rhythmicity.list = option_parallel(1:nrow(X), function(a){

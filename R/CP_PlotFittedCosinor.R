@@ -38,7 +38,7 @@
 #' x2.rhythm = CP_Rhythmicity(x2, parallel = FALSE)
 #'
 #' CP_PlotFittedCosinor(x1.rhythm, x2.rhythm, genes.plot = NULL, Info1 = "data1", Info2 = "data2")
-CP_PlotFittedCosinor = function(x1 = x1.rhythm, x2 = x2.rhythm, genes.plot = c("CLOCK"),
+CP_PlotFittedCosinor = function(x1 = x1.rhythm, x2 = NULL, genes.plot = NULL,
                                 Info1 = "data1", Info2 = "data2",
                                 category1 = NULL, category1.label = NULL, category2 = NULL, category2.label = NULL,
                                 filename = NULL, height = 8, width = 8){
@@ -72,6 +72,7 @@ CP_PlotFittedCosinor = function(x1 = x1.rhythm, x2 = x2.rhythm, genes.plot = c("
     p1 = circadianDrawing_one(tod1, expr1, apar1, gene1,category1, category1.label,specInfo1=Info1, myylim)
     return(p1)
   })
+  names(p1.list) = genes.plot
   if(!is.null(x2)){
     if((!is.data.frame(x2$data))|(!is.data.frame(x2$rhythm))){
       stop("x2: data and rhythmicity parameters must be dataframes")
@@ -106,6 +107,7 @@ CP_PlotFittedCosinor = function(x1 = x1.rhythm, x2 = x2.rhythm, genes.plot = c("
       })
     p1.list = lapply(p2.list0, `[[`, 1)
     p2.list = lapply(p2.list0, `[[`, 2)
+    names(p1.list) = names(p2.list) = genes.plot
   }
 
   if(!is.null(filename)){
@@ -161,12 +163,13 @@ circadianDrawing_one = function(tod1, expr1, apar1, gene1, category1, category1.
   funx1 = function(x){
     apar1$M+apar1$A*cos(2*pi/apar1$P*x+apar1$phase)
   }
+  y1 = funx1(tod1)
 
   df = data.frame(TOD = tod1, Expression = expr1)
   p1 = ggplot2::ggplot(df, ggplot2::aes(x = TOD, y = Expression))+
     ggplot2::geom_point(ggplot2::aes(color = category1), size = 2)+
     ggplot2::geom_function(fun = funx1, color = "red", size = 2)+
-    ggplot2::ylim(myylim[1], myylim[2])+
+    ggplot2::ylim(min(myylim[1], min(y1)), max(myylim[2], max(y1)))+
     ggplot2::ggtitle(amain1)+
     ggplot2::guides(color=ggplot2::guide_legend(title=category1.label))+
     ggplot2::theme_bw()+

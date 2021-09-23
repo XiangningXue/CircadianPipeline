@@ -91,7 +91,7 @@ CP_ResidualDiagnostics = function(x = x1.rhythm, genes.diag = NULL, plot = TRUE,
     a.message = "All genes pass the Shapiro-Wilk normality test"
     message(a.message)
   }else{
-    a.message = paste("Genes that do not pass the Shapiro-Wilk normality test:", paste0(names(diag.output)[pvals>0.05], collapse = ", "))
+    a.message = paste("Genes that do not pass the Shapiro-Wilk normality test:", paste0(names(diag.list)[pvals<0.05], collapse = ", "))
     message(a.message)
   }
 
