@@ -605,6 +605,9 @@ get.angle_point.newOrigin.major = function(x0 = ellipse.parameters$x0,
     }else if(theta.center.0.x_axis*theta.rotate>0){
       angle = abs(theta.center.0.x_axis-theta.rotate)
       return(angle)
+    }else if(theta.center.0.x_axis*theta.rotate==0){
+      angle = abs(theta.center.0.x_axis)
+      return(angle)
     }
   }
 }
