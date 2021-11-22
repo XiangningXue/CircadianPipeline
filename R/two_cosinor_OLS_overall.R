@@ -38,7 +38,7 @@
 #'y = c(noise.mat1+signal.mat1, noise.mat2+signal.mat2)
 #'group = c(rep(0, 30), rep(1, 30))
 #'
-two_cosinor_OLS = function(tod = time, y = y, group, alpha = 0.05, period = 24, CI = TRUE, CI.type = "delta"){
+two_cosinor_OLS_overall = function(tod = time, y = y, group, alpha = 0.05, period = 24, test = "A&phase&M", CI = FALSE, CI.type = "delta"){
 
   #alpha is the critical level for equal tailed CI
   n = length(tod)
@@ -48,7 +48,11 @@ two_cosinor_OLS = function(tod = time, y = y, group, alpha = 0.05, period = 24, 
   x4 = group*x2
 
   fit.full = fitOLS(y, cbind(rep(1, n), x1, x2, group,x3, x4),n)
-  fit.reduced = fitOLS(y, cbind(rep(1, n), x1, x2), n)
+  if(test == "A&phase&M"){
+    fit.reduced = fitOLS(y, cbind(rep(1, n), x1, x2), n)
+  }else if(test =="A&phase"){
+    fit.reduced = fitOLS(y, cbind(rep(1, n), group, x1, x2), n)
+  }
 
   #global test
   Fstat = ((fit.reduced$RSS-fit.full$RSS)/(fit.full$r-fit.reduced$r))/(fit.full$RSS/(n-fit.full$r))
@@ -56,31 +60,31 @@ two_cosinor_OLS = function(tod = time, y = y, group, alpha = 0.05, period = 24, 
   sigma2.hat = fit.full$RSS/(n-fit.reduced$r)
   sigma.hat = sqrt(sigma2.hat)
 
-  #individual test
-  est = fit.full$est
-  mat.S.inv = fit.full$var
-  m.hat = est[1]
-  beta1.hat = est[2]
-  beta2.hat = est[3]
-
-  # truth$phase[2]; truth$amplitude[2]; truth$M[502]
-  m1.hat = m.hat
-  A1.hat = sqrt(beta1.hat^2 + beta2.hat^2)
-  phase1.res = get_phase(beta1.hat, beta2.hat)
-  phase1.hat = phase1.res$phase
-  peak1 <- (period-period*phase1.hat/(2*pi))%%period
-  #if(peak > period/4*3) peak = peak - period #not used
-
-  #estimates for group 2
-  dm.hat = est[4]
-  dbeta1.hat = est[5]
-  dbeta2.hat = est[6]
-
-  m2.hat = m1.hat + dm.hat
-  A2.hat = sqrt((beta1.hat+dbeta1.hat)^2 + (beta2.hat+dbeta2.hat)^2)
-  phase2.res = get_phase(beta1.hat+dbeta1.hat, beta2.hat+dbeta2.hat)
-  phase2.hat = phase2.res$phase
-  peak2 <- (period-period*phase2.hat/(2*pi))%%period
+  # #individual test
+  # est = fit.full$est
+  # mat.S.inv = fit.full$var
+  # m.hat = est[1]
+  # beta1.hat = est[2]
+  # beta2.hat = est[3]
+  #
+  # # truth$phase[2]; truth$amplitude[2]; truth$M[502]
+  # m1.hat = m.hat
+  # A1.hat = sqrt(beta1.hat^2 + beta2.hat^2)
+  # phase1.res = get_phase(beta1.hat, beta2.hat)
+  # phase1.hat = phase1.res$phase
+  # peak1 <- (period-period*phase1.hat/(2*pi))%%period
+  # #if(peak > period/4*3) peak = peak - period #not used
+  #
+  # #estimates for group 2
+  # dm.hat = est[4]
+  # dbeta1.hat = est[5]
+  # dbeta2.hat = est[6]
+  #
+  # m2.hat = m1.hat + dm.hat
+  # A2.hat = sqrt((beta1.hat+dbeta1.hat)^2 + (beta2.hat+dbeta2.hat)^2)
+  # phase2.res = get_phase(beta1.hat+dbeta1.hat, beta2.hat+dbeta2.hat)
+  # phase2.hat = phase2.res$phase
+  # peak2 <- (period-period*phase2.hat/(2*pi))%%period
 
   if(CI){
     CI.m1.hat.radius = calculate_CI.M(mat.S.inv, A.t = matrix(c(1, 0, 0, 0, 0, 0), nrow = 1),

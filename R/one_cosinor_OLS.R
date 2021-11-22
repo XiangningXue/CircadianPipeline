@@ -101,7 +101,9 @@ one_cosinor_OLS = function(tod = time, y = y, alpha = 0.05, period = 24, CI = TR
                A = list(est = A.hat), #conservative CI
                phase = list(est = phase.hat), #conservative CI
                peak = peak,
-               test = list(R2 = MSS/TSS,
+               test = list(Fstat = Fstat,
+                           pval = pval,
+                           R2 = MSS/TSS,
                            sigma2 = sigma2.hat))
   }
  return(out)
