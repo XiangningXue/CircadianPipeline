@@ -185,8 +185,7 @@ CP_DiffRhythmicity = function(x1 = data1.rhythm, x2 = data2.rhythm, x.joint = jo
                            post.hoc.phase = test.overall<alpha&testphase$pvalue<PostHocP(3, alpha, method = "Sidak"),
                            post.hoc.M = test.overall<alpha&testM$pvalue<PostHocP(3, alpha, method = "Sidak"),
                            post.hoc2.A = test.overall2<alpha&testA$pvalue<PostHocP(2, alpha, method = "Sidak"),
-                           post.hoc2.phase = test.overall2<alpha&testphase$pvalue<PostHocP(2, alpha, method = "Sidak"),
-                           post.hoc2.M = test.overall2<alpha&testM$pvalue<PostHocP(2, alpha, method = "Sidak")
+                           post.hoc2.phase = test.overall2<alpha&testphase$pvalue<PostHocP(2, alpha, method = "Sidak")
 
       )
       return(one.row)
