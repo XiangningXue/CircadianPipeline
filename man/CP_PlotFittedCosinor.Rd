@@ -6,8 +6,8 @@
 \usage{
 CP_PlotFittedCosinor(
   x1 = x1.rhythm,
-  x2 = x2.rhythm,
-  genes.plot = c("CLOCK"),
+  x2 = NULL,
+  genes.plot = NULL,
   Info1 = "data1",
   Info2 = "data2",
   category1 = NULL,

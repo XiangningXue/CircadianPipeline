@@ -3,8 +3,6 @@
 #' @param x1 From gorup 1: a list containing the following component: data: dataframe with rows of genes and columns of samples; tod: time of death or time of expression corresponding to the columns in data component; label: the gene names or other labels of the genes
 #' @param x2 From group 2.
 #' @param x.joint A list with two components: Rhythmic.Both contains the labels of genes that are rhythmic in both regions; Rhythmic.GT.One contains the labels of genes that are rhythmic in at least one region
-#' @param diffPar.method A string. One of  "circacompare", "permutation".
-#' @param diffPar.adjust FDR controlling function, one of adj_minP, adj_BH_separate, adj_BH_pool, adj_AWFisher
 #' @param diffR2.method A string. One of "LR", "permutation", "bootstrap"
 #' @param nSampling A numeric value. Number of permutation performer, only required when method = "permutation". The smallest possible p-value in the result will be 1/(n_gene*nSampling), but larger nSampling takes longer computing time.
 #' @param Sampling.save A local directory where you want to save the permutation result for future use. If NULL then no result will be saved.
@@ -42,7 +40,7 @@
 #'
 
 CP_DiffRhythmicity = function(x1 = data1.rhythm, x2 = data2.rhythm, x.joint = joint.rhythm,
-                              diffPar.method = "circacompare", diffPar.adjust = adj_minP,
+                              diffPar = "A&phase&M",
                               diffR2.method = "LR",
                               nSampling=1000, #permutation.load = TRUE,
                               Sampling.save = getwd(), Sampling.file.label = "Group1",
@@ -78,113 +76,128 @@ CP_DiffRhythmicity = function(x1 = data1.rhythm, x2 = data2.rhythm, x.joint = jo
   }
 
 
-  if(diffPar.method == "permutation"&diffR2.method== "permutation"){
-    if((!is.null(Sampling.save))&!dir.exists(Sampling.save)){
-      dir.create(file.path(Sampling.save), recursive = TRUE)
-      message(paste0("Directory has been created. Permutation results will be saved in ", Sampling.save))
-    }
-    diff.tab = diff_rhythmicity_permutation(x1, x2, x.joint$Rhythmic.GT.One, period, nSampling, Sampling.save, Sampling.file.label, parallel, cores)
-    diffPar.tab = diff.tab[match(x.joint$Rhythmic.Both, diff.tab$label), ]
-    diffR2.tab = diff.tab[, c("delta.R2", "p.R2", "label")]
-  }else{
-    #differential parameter test
-    #"two_cosinor1", "two_cosinor2". The method "two_cosinor1" will test the overlap of two CI, and method "two_cosinor2" test if the estimate of group 2 is in CI of group 1.
-    overlap.g = x.joint$Rhythmic.Both
-    if(diffPar.method == "two_cosinor1"){
-      x.list = lapply(1:length(overlap.g), function(a){
-        one.gene.data = data.frame(time = c(x1$tod, x2$tod),
-                                   measure = c(as.numeric(x1$data[match(overlap.g[a], x1$label), ]),
-                                               as.numeric(x2$data[match(overlap.g[a], x2$label), ])),
-                                   group = c(rep(0, length(x1$tod)), rep(1, length(x2$tod))))
-        return(one.gene.data)
-      })
+# diffPar -----------------------------------------------------------------
+  overlap.g = x.joint$Rhythmic.Both
+  x.list = lapply(1:length(overlap.g), function(a){
+    list(x1.time = x1$tod,
+         x2.time = x2$tod,
+         y1 = as.numeric(x1$data[match(overlap.g[a], x1$label), ]),
+         y2 = as.numeric(x2$data[match(overlap.g[a], x2$label), ]))
+  })
 
-      two_cosinor.res = option_parallel(x.list, function(one.data){
-        one.res = two_cosinor_OLS(tod = one.data$time, y = one.data$measure, group = one.data$group)
-        return(one.res)
-      }, parallel, cores)
+  if(diffPar=="A&phase&M"){
+    test_diffPar = parallel::mclapply(1:length(x.list), function(a){
+      test.overall = two_cosinor_OLS_overall(c(x.list[[a]]$x1.time, x.list[[a]]$x2.time),
+                                             c(x.list[[a]]$y1, x.list[[a]]$y2),
+                                             c(rep(0, length(x.list[[a]]$x1.time)), rep(1, length(x.list[[a]]$x2.time))),
+                                             test = "A&phase&M", CI = FALSE)
+      testA = diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period = 24, FN = TRUE, type="amplitude")
+      testphase = diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period = 24, FN = TRUE, type="phase")
+      testM = diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period = 24, FN = TRUE, type="basal")
+      one.row = data.frame(label = overlap.g[a],
+                      delta.A = testA$amp_2-testA$amp_1,
+                      delta.phase = adjust.phase(testphase$phase_2-testphase$phase_1),
+                      delta.M = testM$offset_2-testM$offset_1,
+                      p.overall = test.overall,
+                      post.hoc.A = test.overall<alpha&testA$pvalue<PostHocP(3, alpha, method = "Sidak"),
+                      post.hoc.phase = test.overall<alpha&testphase$pvalue<PostHocP(3, alpha, method = "Sidak"),
+                      post.hoc.M = test.overall<alpha&testM$pvalue<PostHocP(3, alpha, method = "Sidak")
+                      )
+      return(one.row)
+    }, mc.cores = cores)
+    diffPar.tab = do.call(rbind.data.frame, test_diffPar)
+    diffPar.tab$q.overall = stats::p.adjust(diffPar.tab$p.overall, p.adjust.method)
+  }else if(diffPar=="A&phase"){
+    test_diffPar = parallel::mclapply(1:length(x.list), function(a){
+      test.overall = two_cosinor_OLS_overall(c(x.list[[a]]$x1.time, x.list[[a]]$x2.time),
+                                             c(x.list[[a]]$y1, x.list[[a]]$y2),
+                                             c(rep(0, length(x.list[[a]]$x1.time)), rep(1, length(x.list[[a]]$x2.time))),
+                                             test = "A&phase", CI = FALSE)
+      testA = diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period = 24, FN = TRUE, type="amplitude")
+      testphase = diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period = 24, FN = TRUE, type="phase")
+      one.row = data.frame(label = overlap.g[a],
+                           delta.A = testA$amp_2-testA$amp_1,
+                           delta.phase = adjust.phase(testphase$phase_2-testphase$phase_1),
+                           p.overall = test.overall,
+                           post.hoc.A = test.overall<alpha&testA$pvalue<PostHocP(2, alpha, method = "Sidak"),
+                           post.hoc.phase = test.overall<alpha&testphase$pvalue<PostHocP(2, alpha, method = "Sidak")
+      )
+      return(one.row)
+    }, mc.cores = cores)
+    diffPar.tab = do.call(rbind.data.frame, test_diffPar)
+    diffPar.tab$q.overall = stats::p.adjust(diffPar.tab$p.overall, p.adjust.method)
+  }else if(diffPar=="A"){
+    test_diffPar = parallel::mclapply(1:length(x.list), function(a){
+      testA = diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period = 24, FN = TRUE, type="amplitude")
+      one.row = data.frame(label = overlap.g[a],
+                           delta.A = testA$amp_2-testA$amp_1,
+                           p.A = testA$pvalue
+      )
+      return(one.row)
+    }, mc.cores = cores)
+    diffPar.tab = do.call(rbind.data.frame, test_diffPar)
+    diffPar.tab$q.A = stats::p.adjust(diffPar.tab$p.A, p.adjust.method)
+  }else if(diffPar=="phase"){
+    test_diffPar = parallel::mclapply(1:length(x.list), function(a){
+      testphase = diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period = 24, FN = TRUE, type="phase")
+      one.row = data.frame(label = overlap.g[a],
+                           delta.phase = adjust.phase(testphase$phase_2-testphase$phase_1),
+                           p.phase = testphase$pvalue
+      )
+      return(one.row)
+    }, mc.cores = cores)
+    diffPar.tab = do.call(rbind.data.frame, test_diffPar)
+    diffPar.tab$q.phase = stats::p.adjust(diffPar.tab$p.phase, p.adjust.method)
+  }else if(diffPar=="M"){
+    test_diffPar = parallel::mclapply(1:length(x.list), function(a){
+      testM = diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period = 24, FN = TRUE, type="basal")
+      one.row = data.frame(label = overlap.g[a],
+                           delta.M = testM$offset_2-testM$offset_1,
+                           p.M = testM$pvalue
+      )
+      return(one.row)
+    }, mc.cores = cores)
+    diffPar.tab = do.call(rbind.data.frame, test_diffPar)
+    diffPar.tab$q.M = stats::p.adjust(diffPar.tab$p.M, p.adjust.method)
+  }else if(diffPar=="All"){
+    test_diffPar = parallel::mclapply(1:length(x.list), function(a){
+      test.overall = two_cosinor_OLS_overall(c(x.list[[a]]$x1.time, x.list[[a]]$x2.time),
+                                             c(x.list[[a]]$y1, x.list[[a]]$y2),
+                                             c(rep(0, length(x.list[[a]]$x1.time)), rep(1, length(x.list[[a]]$x2.time))),
+                                             test = "A&phase&M", CI = FALSE)
+      test.overall2 = two_cosinor_OLS_overall(c(x.list[[a]]$x1.time, x.list[[a]]$x2.time),
+                                             c(x.list[[a]]$y1, x.list[[a]]$y2),
+                                             c(rep(0, length(x.list[[a]]$x1.time)), rep(1, length(x.list[[a]]$x2.time))),
+                                             test = "A&phase", CI = FALSE)
+      testA = diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period = 24, FN = TRUE, type="amplitude")
+      testphase = diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period = 24, FN = TRUE, type="phase")
+      testM = diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period = 24, FN = TRUE, type="basal")
+      one.row = data.frame(label = overlap.g[a],
+                           delta.A = testA$amp_2-testA$amp_1,
+                           delta.phase = adjust.phase(testphase$phase_2-testphase$phase_1),
+                           delta.M = testM$offset_2-testM$offset_1,
+                           p.overall = test.overall,
+                           p.overall2 = test.overall2,
+                           p.A = testA$pvalue,
+                           p.phase = testphase$pvalue,
+                           p.M = testM$pvalue,
+                           post.hoc.A = test.overall<alpha&testA$pvalue<PostHocP(3, alpha, method = "Sidak"),
+                           post.hoc.phase = test.overall<alpha&testphase$pvalue<PostHocP(3, alpha, method = "Sidak"),
+                           post.hoc.M = test.overall<alpha&testM$pvalue<PostHocP(3, alpha, method = "Sidak"),
+                           post.hoc2.A = test.overall2<alpha&testA$pvalue<PostHocP(2, alpha, method = "Sidak"),
+                           post.hoc2.phase = test.overall2<alpha&testphase$pvalue<PostHocP(2, alpha, method = "Sidak"),
+                           post.hoc2.M = test.overall2<alpha&testM$pvalue<PostHocP(2, alpha, method = "Sidak")
 
-      diffPar.tab = do.call(rbind.data.frame, lapply(two_cosinor.res, function(one.res){
-        as.data.frame(list(delta.M = one.res$g2$M$est-one.res$g1$M$est,
-                           delta.A = one.res$g2$A$est-one.res$g1$A$est,
-                           delta.phase = one.res$g2$phase$est-one.res$g1$phase$est,
-                           delta.peak = one.res$g2$peak-one.res$g1$peak,
-                           p.global = one.res$test$global.pval,
-                           M.ind = one.res$test$M.ind[1],
-                           A.ind = one.res$test$phase.ind[1],
-                           phase.ind = one.res$test$phase.ind[1]))
-      }))
-
-      diffPar.tab$q.global = stats::p.adjust(diffPar.tab$p.global, p.adjust.method)
-
-    }else if(diffPar.method == "two_cosinor2"){
-      x.list = lapply(1:length(overlap.g), function(a){
-        one.gene.data = data.frame(time = c(x1$tod, x2$tod),
-                                   measure = c(as.numeric(x1$data[match(overlap.g[a], x1$label), ]),
-                                               as.numeric(x2$data[match(overlap.g[a], x2$label), ])),
-                                   group = c(rep(0, length(x1$tod)), rep(1, length(x2$tod))))
-        return(one.gene.data)
-      })
-
-      two_cosinor.res = option_parallel(x.list, function(one.data){
-        one.res = two_cosinor_OLS(tod = one.data$time, y = one.data$measure, group = one.data$group)
-        return(one.res)
-      }, parallel, cores)
-
-      diffPar.tab = do.call(rbind.data.frame, lapply(two_cosinor.res, function(one.res){
-        as.data.frame(list(delta.M = one.res$g2$M$est-one.res$g1$M$est,
-                           delta.A = one.res$g2$A$est-one.res$g1$A$est,
-                           delta.phase = one.res$g2$phase$est-one.res$g1$phase$est,
-                           delta.peak = one.res$g2$peak-one.res$g1$peak,
-                           p.global = one.res$test$global.pval,
-                           M.ind = one.res$test$M.ind[2],
-                           A.ind = one.res$test$phase.ind[2],
-                           phase.ind = one.res$test$phase.ind[2]))
-      }))
-
-      diffPar.tab$q.global = stats::p.adjust(diffPar.tab$p.global, p.adjust.method)
-
-    }else if(diffPar.method == "circacompare"){
-      x.list = lapply(1:length(overlap.g), function(a){
-        one.gene.data = data.frame(time = c(x1$tod, x2$tod),
-                                   measure = c(as.numeric(x1$data[match(overlap.g[a], x1$label), ]),
-                                               as.numeric(x2$data[match(overlap.g[a], x2$label), ])),
-                                   group = factor(c(rep(1, length(x1$tod)), rep(2, length(x2$tod)))))
-        return(one.gene.data)
-      })
-
-      circa.res = option_parallel(x.list, function(one.data){
-        one.res = circacompare::circacompare(one.data, col_time = "time", col_group = "group", col_outcome = "measure", period,
-                                             alpha_threshold = 1)
-        return(one.res)
-      }, parallel, cores)
-
-      diffPar.tab = do.call(rbind.data.frame, lapply(circa.res, function(one.res){
-        as.data.frame(list(delta.M = one.res[[2]][6, 2],
-                           p.M = one.res[[2]][7, 2],
-                           delta.A = one.res[[2]][10, 2],
-                           p.A = one.res[[2]][11, 2],
-                           delta.phase = adjust.phase(2*pi-one.res[[2]][14, 2]/period),
-                           delta.peak = one.res[[2]][14, 2],
-                           p.phase = one.res[[2]][15, 2]))
-      }))
-
-      diffPar.tab = cbind.data.frame(label = overlap.g, diffPar.tab)
-      diffPar.tab = diffPar.adjust(diffPar.tab,  p.adjust.method, alpha)
-      # circa.res.plot = lapply(1:length(circa.res), function(a){
-      #   p = circa.res[[a]][[1]]+ggtitle(paste0(overlap.g[a]))
-      #   return(p)
-      # })
-    }else if(diffPar.method == "permutation"){
-      if((!is.null(Sampling.save))&!dir.exists(Sampling.save)){
-        dir.create(file.path(Sampling.save), recursive = TRUE)
-        message(paste0("Directory has been created. Permutation results will be saved in ", Sampling.save))
-      }
-      diffPar.tab = diff_rhythmicity_permutation(x1, x2, overlap.g, period, nSampling, Sampling.save, Sampling.file.label, parallel, cores)
-      diffPar.tab = diffPar.adjust(diffPar.tab,  p.adjust.method, alpha)
-    }
-
-
+      )
+      return(one.row)
+    }, mc.cores = cores)
+    diffPar.tab = do.call(rbind.data.frame, test_diffPar)
+    diffPar.tab$q.overall = stats::p.adjust(diffPar.tab$p.overall, p.adjust.method)
+    diffPar.tab$q.overall2 = stats::p.adjust(diffPar.tab$p.overall2, p.adjust.method)
+    diffPar.tab$q.A = stats::p.adjust(diffPar.tab$p.A, p.adjust.method)
+    diffPar.tab$q.phase = stats::p.adjust(diffPar.tab$p.phase, p.adjust.method)
+    diffPar.tab$q.M = stats::p.adjust(diffPar.tab$p.M, p.adjust.method)
+  }
 
     #differential R2 test
     overlap.g = x.joint$Rhythmic.GT.One
@@ -216,8 +229,18 @@ CP_DiffRhythmicity = function(x1 = data1.rhythm, x2 = data2.rhythm, x.joint = jo
 
     diffR2.tab$qvalue = stats::p.adjust(diffR2.tab$pvalue, p.adjust.method)
 
-  }
-
   return(list(diffPar = diffPar.tab,
               diffR2 = diffR2.tab))
 }
+
+PostHocP = function(p = 4, alpha = 0.05, n, method = "Bonferroni"){
+  if(method=="Bonferroni"){
+    adjusted.p = alpha/p
+  }else if(method == "Sidak"){
+    adjusted.p = 1-(1-alpha)^(1/p)
+  }else{
+    stop("Method must be Bonferroni or Sidak")
+  }
+  return(adjusted.p)
+}
+
