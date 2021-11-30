@@ -3,6 +3,7 @@
 #' @param x1 From gorup 1: a list containing the following component: data: dataframe with rows of genes and columns of samples; tod: time of death or time of expression corresponding to the columns in data component; label: the gene names or other labels of the genes
 #' @param x2 From group 2.
 #' @param x.joint A list with two components: Rhythmic.Both contains the labels of genes that are rhythmic in both regions; Rhythmic.GT.One contains the labels of genes that are rhythmic in at least one region
+#' @param diffPar
 #' @param diffR2.method A string. One of "LR", "permutation", "bootstrap"
 #' @param nSampling A numeric value. Number of permutation performer, only required when method = "permutation". The smallest possible p-value in the result will be 1/(n_gene*nSampling), but larger nSampling takes longer computing time.
 #' @param Sampling.save A local directory where you want to save the permutation result for future use. If NULL then no result will be saved.
@@ -36,7 +37,7 @@
 #' x.joint = CP_JointRhythmicity(x1.Rhythm, x2.Rhythm, method = "AW-Fisher",
 #' para.list = list(param = "pvalue", range = "less", value = 0.05))
 #'
-#' diffRhythm.res = CP_DiffRhythmicity(x1.Rhythm, x2.Rhythm, x.joint)
+#' diffRhythm.res = CP_DiffRhythmicity(x1.Rhythm, x2.Rhythm, x.joint, diffPar = "A&phase&M", parallel = FALSE, cores = 1)
 #'
 
 CP_DiffRhythmicity = function(x1 = data1.rhythm, x2 = data2.rhythm, x.joint = joint.rhythm,

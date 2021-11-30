@@ -8,8 +8,7 @@ CP_DiffRhythmicity(
   x1 = data1.rhythm,
   x2 = data2.rhythm,
   x.joint = joint.rhythm,
-  diffPar.method = "circacompare",
-  diffPar.adjust = adj_minP,
+  diffPar = "A&phase&M",
   diffR2.method = "LR",
   nSampling = 1000,
   Sampling.save = getwd(),
@@ -26,10 +25,6 @@ CP_DiffRhythmicity(
 \item{x2}{From group 2.}
 
 \item{x.joint}{A list with two components: Rhythmic.Both contains the labels of genes that are rhythmic in both regions; Rhythmic.GT.One contains the labels of genes that are rhythmic in at least one region}
-
-\item{diffPar.method}{A string. One of  "circacompare", "permutation".}
-
-\item{diffPar.adjust}{FDR controlling function, one of adj_minP, adj_BH_separate, adj_BH_pool, adj_AWFisher}
 
 \item{diffR2.method}{A string. One of "LR", "permutation", "bootstrap"}
 
@@ -74,6 +69,6 @@ x2.Rhythm = CP_Rhythmicity(x2, parallel = FALSE)
 x.joint = CP_JointRhythmicity(x1.Rhythm, x2.Rhythm, method = "AW-Fisher",
 para.list = list(param = "pvalue", range = "less", value = 0.05))
 
-diffRhythm.res = CP_DiffRhythmicity(x1.Rhythm, x2.Rhythm, x.joint)
+diffRhythm.res = CP_DiffRhythmicity(x1.Rhythm, x2.Rhythm, x.joint, diffPar = "A&phase&M", parallel = FALSE, cores = 1)
 
 }
