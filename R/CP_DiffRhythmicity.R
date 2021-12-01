@@ -44,7 +44,7 @@ CP_DiffRhythmicity = function(x1 = data1.rhythm, x2 = data2.rhythm, x.joint = jo
                               diffPar = "A&phase&M",
                               diffR2.method = "LR",
                               nSampling=1000, #permutation.load = TRUE,
-                              Sampling.save = NULL, Sampling.file.label = "Group1",
+                              Sampling.save = getwd(), Sampling.file.label = "Group1",
                               alpha = 0.05, p.adjust.method = "BH", parallel = FALSE, cores = 5){
 
   #checking
@@ -80,74 +80,59 @@ CP_DiffRhythmicity = function(x1 = data1.rhythm, x2 = data2.rhythm, x.joint = jo
 # diffPar -----------------------------------------------------------------
   overlap.g = x.joint$Rhythmic.Both
   x.list = lapply(1:length(overlap.g), function(a){
-    one.gene.data = data.frame(time = c(x1$tod, x2$tod),
-                               measure = c(as.numeric(x1$data[match(overlap.g[a], x1$label), ]),
-                                           as.numeric(x2$data[match(overlap.g[a], x2$label), ])),
-                               group = factor(c(rep(1, length(x1$tod)), rep(2, length(x2$tod)))))
-    return(one.gene.data)
+    list(x1.time = x1$tod,
+         x2.time = x2$tod,
+         y1 = as.numeric(x1$data[match(overlap.g[a], x1$label), ]),
+         y2 = as.numeric(x2$data[match(overlap.g[a], x2$label), ]))
   })
 
   if(diffPar=="A&phase&M"){
     test_diffPar = parallel::mclapply(1:length(x.list), function(a){
-      test.overall = two_cosinor_OLS_overall(x.list[[a]]$time,
-                                             x.list[[a]]$measure,
-                                             x.list[[a]]$group,
+      test.overall = two_cosinor_OLS_overall(c(x.list[[a]]$x1.time, x.list[[a]]$x2.time),
+                                             c(x.list[[a]]$y1, x.list[[a]]$y2),
+                                             c(rep(0, length(x.list[[a]]$x1.time)), rep(1, length(x.list[[a]]$x2.time))),
                                              test = "A&phase&M", CI = FALSE)
-
-      one.data = x.list[[a]]
-      one.res = circacompare::circacompare(one.data, col_time = "time", col_group = "group", col_outcome = "measure", period,
-                                             alpha_threshold = 1)$summary
-
+      testA = diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period = 24, FN = TRUE, type="amplitude")
+      testphase = diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period = 24, FN = TRUE, type="phase")
+      testM = diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period = 24, FN = TRUE, type="basal")
       one.row = data.frame(label = overlap.g[a],
-                      delta.A = one.res[9, 2],
-                      delta.peak = one.res[13, 2],
-                      delta.M = one.res[5, 2],
+                      delta.A = testA$amp_2-testA$amp_1,
+                      delta.phase = adjust.phase(testphase$phase_2-testphase$phase_1),
+                      delta.M = testM$offset_2-testM$offset_1,
                       p.overall = test.overall,
-                      p.A = one.res[10, 2],
-                      p.peak = one.res[14, 2],
-                      p.M = one.res[6, 2],
-                      post.hoc.A = test.overall<alpha&one.res[10, 2]<PostHocP(3, alpha, method = "Sidak"),
-                      post.hoc.phase = test.overall<alpha&one.res[14, 2]<PostHocP(3, alpha, method = "Sidak"),
-                      post.hoc.M = test.overall<alpha&one.res[6, 2]<PostHocP(3, alpha, method = "Sidak")                      )
+                      post.hoc.A = test.overall<alpha&testA$pvalue<PostHocP(3, alpha, method = "Sidak"),
+                      post.hoc.phase = test.overall<alpha&testphase$pvalue<PostHocP(3, alpha, method = "Sidak"),
+                      post.hoc.M = test.overall<alpha&testM$pvalue<PostHocP(3, alpha, method = "Sidak")
+                      )
       return(one.row)
     }, mc.cores = cores)
     diffPar.tab = do.call(rbind.data.frame, test_diffPar)
     diffPar.tab$q.overall = stats::p.adjust(diffPar.tab$p.overall, p.adjust.method)
   }else if(diffPar=="A&phase"){
     test_diffPar = parallel::mclapply(1:length(x.list), function(a){
-      test.overall = two_cosinor_OLS_overall(x.list[[a]]$time,
-                                             x.list[[a]]$measure,
-                                             x.list[[a]]$group,
+      test.overall = two_cosinor_OLS_overall(c(x.list[[a]]$x1.time, x.list[[a]]$x2.time),
+                                             c(x.list[[a]]$y1, x.list[[a]]$y2),
+                                             c(rep(0, length(x.list[[a]]$x1.time)), rep(1, length(x.list[[a]]$x2.time))),
                                              test = "A&phase", CI = FALSE)
-      one.data = x.list[[a]]
-      one.res = circacompare::circacompare(one.data, col_time = "time", col_group = "group", col_outcome = "measure", period,
-                                           alpha_threshold = 1)$summary
+      testA = diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period = 24, FN = TRUE, type="amplitude")
+      testphase = diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period = 24, FN = TRUE, type="phase")
       one.row = data.frame(label = overlap.g[a],
-                           delta.A = one.res[9, 2],
-                           delta.peak = one.res[13, 2],
-                           # delta.M = one.res[5, 2],
+                           delta.A = testA$amp_2-testA$amp_1,
+                           delta.phase = adjust.phase(testphase$phase_2-testphase$phase_1),
                            p.overall = test.overall,
-                           p.A = one.res[10, 2],
-                           p.peak = one.res[14, 2],
-                           # p.M = one.res[6, 2],
-                           post.hoc.A = test.overall<alpha&one.res[10, 2]<PostHocP(2, alpha, method = "Sidak"),
-                           post.hoc.phase = test.overall<alpha&one.res[14, 2]<PostHocP(2, alpha, method = "Sidak")
-                           # post.hoc.M = test.overall<alpha&one.res[6, 2]<PostHocP(3, alpha, method = "Sidak")
-                           )
-
+                           post.hoc.A = test.overall<alpha&testA$pvalue<PostHocP(2, alpha, method = "Sidak"),
+                           post.hoc.phase = test.overall<alpha&testphase$pvalue<PostHocP(2, alpha, method = "Sidak")
+      )
       return(one.row)
     }, mc.cores = cores)
     diffPar.tab = do.call(rbind.data.frame, test_diffPar)
     diffPar.tab$q.overall = stats::p.adjust(diffPar.tab$p.overall, p.adjust.method)
   }else if(diffPar=="A"){
     test_diffPar = parallel::mclapply(1:length(x.list), function(a){
-      one.data = x.list[[a]]
-      one.res = circacompare::circacompare(one.data, col_time = "time", col_group = "group", col_outcome = "measure", period,
-                                           alpha_threshold = 1)$summary
-
+      testA = diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period = 24, FN = TRUE, type="amplitude")
       one.row = data.frame(label = overlap.g[a],
-                           delta.A = one.res[9, 2],
-                           p.A = one.res[10, 2]
+                           delta.A = testA$amp_2-testA$amp_1,
+                           p.A = testA$pvalue
       )
       return(one.row)
     }, mc.cores = cores)
@@ -155,13 +140,10 @@ CP_DiffRhythmicity = function(x1 = data1.rhythm, x2 = data2.rhythm, x.joint = jo
     diffPar.tab$q.A = stats::p.adjust(diffPar.tab$p.A, p.adjust.method)
   }else if(diffPar=="phase"){
     test_diffPar = parallel::mclapply(1:length(x.list), function(a){
-      one.data = x.list[[a]]
-      one.res = circacompare::circacompare(one.data, col_time = "time", col_group = "group", col_outcome = "measure", period,
-                                           alpha_threshold = 1)$summary
-
+      testphase = diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period = 24, FN = TRUE, type="phase")
       one.row = data.frame(label = overlap.g[a],
-                           delta.peak = one.res[13, 2],
-                           p.phase =  one.res[14, 2]
+                           delta.phase = adjust.phase(testphase$phase_2-testphase$phase_1),
+                           p.phase = testphase$pvalue
       )
       return(one.row)
     }, mc.cores = cores)
@@ -169,14 +151,10 @@ CP_DiffRhythmicity = function(x1 = data1.rhythm, x2 = data2.rhythm, x.joint = jo
     diffPar.tab$q.phase = stats::p.adjust(diffPar.tab$p.phase, p.adjust.method)
   }else if(diffPar=="M"){
     test_diffPar = parallel::mclapply(1:length(x.list), function(a){
-      one.data = x.list[[a]]
-      one.res = circacompare::circacompare(one.data, col_time = "time", col_group = "group", col_outcome = "measure", period,
-                                           alpha_threshold = 1)$summary
-
       testM = diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period = 24, FN = TRUE, type="basal")
       one.row = data.frame(label = overlap.g[a],
-                           delta.M = one.res[5, 2],
-                           p.M =  one.res[6, 2]
+                           delta.M = testM$offset_2-testM$offset_1,
+                           p.M = testM$pvalue
       )
       return(one.row)
     }, mc.cores = cores)
@@ -184,33 +162,33 @@ CP_DiffRhythmicity = function(x1 = data1.rhythm, x2 = data2.rhythm, x.joint = jo
     diffPar.tab$q.M = stats::p.adjust(diffPar.tab$p.M, p.adjust.method)
   }else if(diffPar=="All"){
     test_diffPar = parallel::mclapply(1:length(x.list), function(a){
-      test.overall = two_cosinor_OLS_overall(x.list[[a]]$time,
-                                             x.list[[a]]$measure,
-                                             x.list[[a]]$group,
+      test.overall = two_cosinor_OLS_overall(c(x.list[[a]]$x1.time, x.list[[a]]$x2.time),
+                                             c(x.list[[a]]$y1, x.list[[a]]$y2),
+                                             c(rep(0, length(x.list[[a]]$x1.time)), rep(1, length(x.list[[a]]$x2.time))),
                                              test = "A&phase&M", CI = FALSE)
-      test.overall2 = two_cosinor_OLS_overall(x.list[[a]]$time,
-                                              x.list[[a]]$measure,
-                                              x.list[[a]]$group,
-                                              test = "A&phase", CI = FALSE)
-      one.data = x.list[[a]]
-      one.res = circacompare::circacompare(one.data, col_time = "time", col_group = "group", col_outcome = "measure", period,
-                                           alpha_threshold = 1)$summary
-
+      test.overall2 = two_cosinor_OLS_overall(c(x.list[[a]]$x1.time, x.list[[a]]$x2.time),
+                                             c(x.list[[a]]$y1, x.list[[a]]$y2),
+                                             c(rep(0, length(x.list[[a]]$x1.time)), rep(1, length(x.list[[a]]$x2.time))),
+                                             test = "A&phase", CI = FALSE)
+      testA = diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period = 24, FN = TRUE, type="amplitude")
+      testphase = diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period = 24, FN = TRUE, type="phase")
+      testM = diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period = 24, FN = TRUE, type="basal")
       one.row = data.frame(label = overlap.g[a],
-                           delta.A = one.res[9, 2],
-                           delta.peak = one.res[13, 2],
-                           delta.M = one.res[5, 2],
+                           delta.A = testA$amp_2-testA$amp_1,
+                           delta.phase = adjust.phase(testphase$phase_2-testphase$phase_1),
+                           delta.M = testM$offset_2-testM$offset_1,
                            p.overall = test.overall,
                            p.overall2 = test.overall2,
-                           p.A = one.res[10, 2],
-                           p.peak = one.res[14, 2],
-                           p.M = one.res[6, 2],
-                           post.hoc.A = test.overall<alpha&one.res[10, 2]<PostHocP(3, alpha, method = "Sidak"),
-                           post.hoc.phase = test.overall<alpha&one.res[14, 2]<PostHocP(3, alpha, method = "Sidak"),
-                           post.hoc.M = test.overall<alpha&one.res[6, 2]<PostHocP(3, alpha, method = "Sidak"),
-                           post.hoc2.A = test.overall2<alpha&one.res[10, 2]<PostHocP(2, alpha, method = "Sidak"),
-                           post.hoc2.phase = test.overall2<alpha&one.res[14, 2]<PostHocP(2, alpha, method = "Sidak"))
+                           p.A = testA$pvalue,
+                           p.phase = testphase$pvalue,
+                           p.M = testM$pvalue,
+                           post.hoc.A = test.overall<alpha&testA$pvalue<PostHocP(3, alpha, method = "Sidak"),
+                           post.hoc.phase = test.overall<alpha&testphase$pvalue<PostHocP(3, alpha, method = "Sidak"),
+                           post.hoc.M = test.overall<alpha&testM$pvalue<PostHocP(3, alpha, method = "Sidak"),
+                           post.hoc2.A = test.overall2<alpha&testA$pvalue<PostHocP(2, alpha, method = "Sidak"),
+                           post.hoc2.phase = test.overall2<alpha&testphase$pvalue<PostHocP(2, alpha, method = "Sidak")
 
+      )
       return(one.row)
     }, mc.cores = cores)
     diffPar.tab = do.call(rbind.data.frame, test_diffPar)
