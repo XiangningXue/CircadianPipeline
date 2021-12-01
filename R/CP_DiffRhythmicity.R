@@ -44,7 +44,7 @@ CP_DiffRhythmicity = function(x1 = data1.rhythm, x2 = data2.rhythm, x.joint = jo
                               diffPar = "A&phase&M",
                               diffR2.method = "LR",
                               nSampling=1000, #permutation.load = TRUE,
-                              Sampling.save = getwd(), Sampling.file.label = "Group1",
+                              Sampling.save = NULL, Sampling.file.label = "Group1",
                               alpha = 0.05, p.adjust.method = "BH", parallel = FALSE, cores = 5){
 
   #checking
@@ -115,9 +115,9 @@ CP_DiffRhythmicity = function(x1 = data1.rhythm, x2 = data2.rhythm, x.joint = jo
     diffPar.tab$q.overall = stats::p.adjust(diffPar.tab$p.overall, p.adjust.method)
   }else if(diffPar=="A&phase"){
     test_diffPar = parallel::mclapply(1:length(x.list), function(a){
-      test.overall = two_cosinor_OLS_overall(c(x.list[[a]]$x1.time, x.list[[a]]$x2.time),
-                                             c(x.list[[a]]$y1, x.list[[a]]$y2),
-                                             c(rep(0, length(x.list[[a]]$x1.time)), rep(1, length(x.list[[a]]$x2.time))),
+      test.overall = two_cosinor_OLS_overall(x.list[[a]]$time,
+                                             x.list[[a]]$measure,
+                                             x.list[[a]]$group,
                                              test = "A&phase", CI = FALSE)
       one.data = x.list[[a]]
       one.res = circacompare::circacompare(one.data, col_time = "time", col_group = "group", col_outcome = "measure", period,
@@ -184,14 +184,14 @@ CP_DiffRhythmicity = function(x1 = data1.rhythm, x2 = data2.rhythm, x.joint = jo
     diffPar.tab$q.M = stats::p.adjust(diffPar.tab$p.M, p.adjust.method)
   }else if(diffPar=="All"){
     test_diffPar = parallel::mclapply(1:length(x.list), function(a){
-      test.overall = two_cosinor_OLS_overall(c(x.list[[a]]$x1.time, x.list[[a]]$x2.time),
-                                             c(x.list[[a]]$y1, x.list[[a]]$y2),
-                                             c(rep(0, length(x.list[[a]]$x1.time)), rep(1, length(x.list[[a]]$x2.time))),
+      test.overall = two_cosinor_OLS_overall(x.list[[a]]$time,
+                                             x.list[[a]]$measure,
+                                             x.list[[a]]$group,
                                              test = "A&phase&M", CI = FALSE)
-      test.overall2 = two_cosinor_OLS_overall(c(x.list[[a]]$x1.time, x.list[[a]]$x2.time),
-                                             c(x.list[[a]]$y1, x.list[[a]]$y2),
-                                             c(rep(0, length(x.list[[a]]$x1.time)), rep(1, length(x.list[[a]]$x2.time))),
-                                             test = "A&phase", CI = FALSE)
+      test.overall2 = two_cosinor_OLS_overall(x.list[[a]]$time,
+                                              x.list[[a]]$measure,
+                                              x.list[[a]]$group,
+                                              test = "A&phase", CI = FALSE)
       one.data = x.list[[a]]
       one.res = circacompare::circacompare(one.data, col_time = "time", col_group = "group", col_outcome = "measure", period,
                                            alpha_threshold = 1)$summary

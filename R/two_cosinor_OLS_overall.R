@@ -41,6 +41,10 @@
 two_cosinor_OLS_overall = function(tod = time, y = y, group, alpha = 0.05, period = 24, test = "A&phase&M", CI = FALSE, CI.type = "delta"){
 
   #alpha is the critical level for equal tailed CI
+  if(is.factor(group)){
+    group = as.numeric(group)-1
+  }
+
   n = length(tod)
   x1 = cos(2*pi*tod/period)
   x2 = sin(2*pi*tod/period)
