@@ -2,59 +2,53 @@
 % Please edit documentation in R/CP_Rhythmicity.R
 \name{CP_Rhythmicity}
 \alias{CP_Rhythmicity}
-\title{Title Rhythmicity Analysis for one data set}
+\title{Title The Rhythmicity Analysis with Cosinor}
 \usage{
 CP_Rhythmicity(
-  x = list(data = data1, tod = tod, label = label),
+  x1,
+  x2 = NULL,
+  method = "Sidak_FS",
   period = 24,
-  method = "OLS",
-  nPermutation = 1000,
-  permutation.save = getwd(),
-  permutation.file.label = "Group1",
   alpha = 0.05,
+  alpha.FDR = 0.05,
+  CI = FALSE,
   p.adjust.method = "BH",
-  parallel = TRUE,
-  cores = 5
+  parallel.ncores = 1
 )
 }
 \arguments{
-\item{x}{A list containing the following component: data: dataframe with rows of genes and columns of samples; tod: time of death or time of expression corresponding to the columns in data component; label: the gene names or other labels of the genes}
+\item{x1}{group I data. A list with the following components: \itemize{
+\item data: data.frame genes in rows and samples in columns.
+\item time: time of expression. Should be in the same order as samples in the data.
+\item gname: labels for gene. Should be in the same order as rows in the data.
+}}
 
-\item{period}{The length of the rhythmicity cycle. When it is 24, the signal is circadian.}
+\item{x2}{group II data. Same as x1 for formats.}
 
-\item{method}{choose "OLS" or "permutation". OLS assumes Gaussian residual while permutation does not. Only OLS methods return confidence interval estimates. Notice that if permutation is selected, it is recommanded to use parallel computing.}
+\item{method}{character string specifying the algorithm used for joint rhythmicity categorization. Should be one of "Sidak_FS", "Sidak_BS", "VDA", "AWFisher".}
 
-\item{nPermutation}{A numeric value. Number of permutation performer, only required when method = "permutation". The smallest possible p-value in the result will be 1/(n_gene*nPermutation), but larger nPermutation takes longer computing time.}
+\item{period}{integer. The length of the oscillation cycle. Default is 24 for circadian signals.}
 
-\item{permutation.save}{A local directory where you want to save the permutation result for future use. If "NULL" then no result will be saved.}
+\item{alpha}{integer. Threshold for rhythmicity p-value in joint rhythmicity categorization. If CI = TRUE, (1-alpha) confidence interval for parameters will be returned.}
 
-\item{permutation.file.label}{Special label for file name of permutation if you want to save the permutation file}
+\item{alpha.FDR}{integer. Threshold for rhythmicity p-value in joint rhythmicity categorization adjusted for global FDR control.}
 
-\item{alpha}{a number between 0 to 1. The critical level for the confidence interval}
+\item{CI}{logical. Should confidence interval for A, phase and M be returned?}
 
-\item{p.adjust.method}{choose valid input for p.adjust.method by checking p.adjust.methods for p.adjust() in R package \code{stat}}
+\item{p.adjust.method}{input for p.adjust() in R package \code{stat}.}
 
-\item{parallel}{TRUE/FALSE. If TRUE, parallel computing using mclapply will be used, which does not work on windows system.}
-
-\item{cores}{number of cores used if using parallel computing}
+\item{parallel.ncores}{integer. Number of cores used if using parallel computing with \code{mclapply()}. Not functional for windows system.}
 }
 \value{
-A rhythm object, which is a list of original components in input x and rhythmicity results
+A list of origical x input and rhythmicity analysis estimates. If given two data sets, joint rhythmicity categorization will also be available in component rhythm.joint
 }
 \description{
-This function fit the expression and time to this function \deqn{y = M+A*cos(2\pi/24*t+phase)+\epsilon}, where \eqn{\epsilon \sim N(0, \sigma^2)}.
+This function either takes one data set and performs only rhythmicity analysis with cosinor, or takes two data sets and categorize the genes into joint rhythmicity categories.
 }
 \examples{
-#Simulate a time series data with 20 time points and 100 genes
+x = CP_sim_data(ngene=1000, nsample=30, A1=c(1, 3), A2=c(1, 3),
+phase1=c(0, pi/4), phase2=c(pi/4, pi/2),
+M1=c(4, 6), M2=c(4, 6), sigma1=1, sigma2=1)
 
-x.time = runif(20, min = 0, max = 24)
-m = rnorm(100, 5); A = rnorm(100, 3); phase = runif(100, min = 0, max = 2*pi); sigma = 1
-noise.mat = matrix(rnorm(100*20, 0, sigma), ncol = 20, nrow = 100)
-signal.mat = t(sapply(1:100, function(a){m[a]+A[a]*cos(2*pi/24*x.time+phase[a])}))
-x = list(data = as.data.frame(noise.mat + signal.mat),
-tod = x.time,
-label = paste("gene", seq_len(100)))
-x.Rhythm = CP_Rhythmicity(x, parallel = FALSE)
-
-
+rhythm.res = CP_Rhythmicity(x1 = x[[1]], x2 = x[[2]])
 }
