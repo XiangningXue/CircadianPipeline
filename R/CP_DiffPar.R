@@ -18,21 +18,28 @@
 #' rhythm.res = CP_Rhythmicity(x1 = x[[1]], x2 = x[[2]])
 #' rhythm.diffPar = CP_DiffPar(rhythm.res, Par = "A&phase")
 CP_DiffPar = function(x, Par = c("A"), TOJR=NULL, alpha = 0.05, p.adjust.method = "BH", parallel.ncores = 1){
+
   stopifnot('Par should be one of "A", "phase", "M", "A&phase", or "A&phase&M". ' = Par %in% c("A", "phase", "M", "A&phase", "A&phase&M"))
+  stopifnot("x should be output of CP_Rhythmicity() with both x1 and x2 not NULL" = all(c("x1", "x2", "gname_overlap", "rhythm.joint")%in%names(x)))
+
   if(is.null(TOJR)){
     overlap.g = x$rhythm.joint$gname[x$rhythm.joint$TOJR == "both"]
   }else{
     stopifnot('The input number of types of joint rhythmicity does not match that of overlapping genes in two groups ' =
-                length(x$rhythm.joint$gname)==length(TOJR))
-    overlap.g = x$rhythm.joint$gname[TOJR == "both"]
+                length(x$rhythm.joint$gname)==length(TOJR)
+              )
+    overlap.g = x$gname_overlap[TOJR == "both"]
   }
+
   x1 = x$x1
   x2 = x$x2
-
   x1.overlap = x1$data[match(overlap.g, x1$gname), ]
   x2.overlap = x2$data[match(overlap.g, x2$gname), ]
   t1 = x1$time
   t2 = x2$time
+  x1.rhythm = x1$rhythm[match(overlap.g, x1$rhythm$gname), ]
+  x2.rhythm = x2$rhythm[match(overlap.g, x2$rhythm$gname), ]
+  stopifnot("x$x1$P is not equal to x$x2$P. " = x$x1$P==x$x2$P)
   period = x$x1$P
 
   x.list = lapply(1:length(overlap.g), function(a){
@@ -48,11 +55,12 @@ CP_DiffPar = function(x, Par = c("A"), TOJR=NULL, alpha = 0.05, p.adjust.method 
     test_diffPar = parallel::mclapply(1:length(x.list), function(a){
       out.diffPar = diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period , FN = TRUE, type=Par2)
       one.row = data.frame(gname = overlap.g[a],
-                           Par1 = ifelse(Par2=="phase", 30-out.diffPar[[1]], out.diffPar[[1]]),
-                           Par2 = ifelse(Par2=="phase", 30-out.diffPar[[2]], out.diffPar[[2]]),
-                           delta.Par = ifelse(Par2=="phase", out.diffPar[[1]]-out.diffPar[[2]], out.diffPar[[2]]-out.diffPar[[1]]),
+                           Par1 = ifelse(Par2=="phase", x1.rhythm[, "peak"][a], x1.rhythm[, Par][a]),
+                           Par2 = ifelse(Par2=="phase", x2.rhythm[, "peak"][a], x2.rhythm[, Par][a]),
+                           delta.Par = ifelse(Par2=="phase", x2.rhythm[, "peak"][a]-x1.rhythm[, "peak"][a], x2.rhythm[, Par][a]-x1.rhythm[, Par][a]),
                            pvalue = out.diffPar$pvalue
       )
+      #notice that the peak estimate from diffCircadian and CP_Rhythmicity is peak_dfCircadain + peak_CP = 30
       return(one.row)
     }, mc.cores = parallel.ncores)
     diffPar.tab = do.call(rbind.data.frame, test_diffPar)
@@ -80,13 +88,13 @@ CP_DiffPar = function(x, Par = c("A"), TOJR=NULL, alpha = 0.05, p.adjust.method 
         out.diffA = diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period , FN = TRUE, type="amplitude")
         out.diffphase= diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period , FN = TRUE, type="phase")
         one.row = data.frame(
-          A1 = out.diffA[[1]],
-          A2 = out.diffA[[2]],
-          delta.A = out.diffA[[2]]-out.diffA[[1]],
+          A1 = x1.rhythm$A[a],
+          A2 = x2.rhythm$A[a],
+          delta.A = x2.rhythm$A[a]-x1.rhythm$A[a],
           p.delta.A = out.diffA$pvalue,
-          phase1 = 30-out.diffphase[[1]],
-          phase2 = 30-out.diffphase[[2]],
-          delta.phase = out.diffphase[[1]]-out.diffphase[[2]],
+          phase1 = x1.rhythm$peak[a],
+          phase2 = x2.rhythm$peak[a],
+          delta.phase = x2.rhythm$peak[a]-x1.rhythm$peak[a],
           p.delta.phase = out.diffphase$pvalue
         )
         return(one.row)
@@ -109,17 +117,17 @@ CP_DiffPar = function(x, Par = c("A"), TOJR=NULL, alpha = 0.05, p.adjust.method 
         out.diffphase= diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period , FN = TRUE, type="phase")
         out.diffM= diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period , FN = TRUE, type="basal")
         one.row = data.frame(
-          A1 = out.diffA[[1]],
-          A2 = out.diffA[[2]],
-          delta.A = out.diffA[[2]]-out.diffA[[1]],
+          A1 = x1.rhythm$A[a],
+          A2 = x2.rhythm$A[a],
+          delta.A = x2.rhythm$A[a]-x1.rhythm$A[a],
           p.delta.A = out.diffA$pvalue,
-          phase1 = 30-out.diffphase[[1]],
-          phase2 = 30-out.diffphase[[2]],
-          delta.phase = out.diffphase[[1]]-out.diffphase[[2]],
+          phase1 = x1.rhythm$peak[a],
+          phase2 = x2.rhythm$peak[a],
+          delta.phase = x2.rhythm$peak[a]-x1.rhythm$peak[a],
           p.delta.phase = out.diffphase$pvalue,
-          M1 = 30-out.diffM[[1]],
-          M2 = 30-out.diffM[[2]],
-          delta.M = out.diffM[[2]]-out.diffM[[1]],
+          M1 = x1.rhythm$M[a],
+          M2 = x2.rhythm$M[a],
+          delta.M = x2.rhythm$M[a]-x1.rhythm$M[a],
           p.delta.M = out.diffM$pvalue
         )
         return(one.row)
@@ -145,7 +153,7 @@ CP_DiffPar = function(x, Par = c("A"), TOJR=NULL, alpha = 0.05, p.adjust.method 
   }
 
   colnames(diffPar.tab) = gsub("phase", "peak", colnames(diffPar.tab))
-  out = list(diffPar.tab = diffPar.tab,
-             P = period)
+  diffPar.tab$P = period
+  out = diffPar.tab
   return(out)
 }

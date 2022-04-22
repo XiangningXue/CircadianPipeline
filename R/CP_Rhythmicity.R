@@ -52,13 +52,14 @@ CP_Rhythmicity = function(x1, x2=NULL, method = "Sidak_FS", period = 24, alpha =
     #NAME:TOJR:type of joint rhythmicity
 
     x = list(x1 = x1, x2 = x2,
+             gname_overlap = gname.overlap,
              rhythm.joint = cbind.data.frame(gname.overlap, action, pM, TOJR))
     colnames(x$rhythm.joint) = c("gname", "action1", "action2", "pG1", "pG2", "TOJR")
     x$rhythm.joint$TOJR.FDR = toTOJR(x, method, alpha.FDR, adjustP = TRUE, p.adjust.method, parallel.ncores)
     return(x)
   }
-
 }
+
 CP_OneGroup = function(x1, period = 24, alpha = 0.05, CI = FALSE, p.adjust.method = "BH"){
   stopifnot("x1$data must be dataframe" = is.data.frame(x1$data))
   stopifnot("Number of samples in data does not match that in time. " = ncol(x1$data)==length(x1$time))
@@ -162,14 +163,16 @@ CP_OneGroup = function(x1, period = 24, alpha = 0.05, CI = FALSE, p.adjust.metho
 #' M1=c(4, 6), M2=c(4, 6), sigma1=1, sigma2=1)
 #' rhythm.res1 = CP_Rhythmicity(x1 = x[[1]])
 #' rhythm.res2 = CP_Rhythmicity(x1 = x[[2]])
-#' TOJR = toTOJR(list(rhythm.res1, rhythm.res2), alpha = 0.05, adjustP = FALSE)
+#' TOJR = toTOJR(list(rhythm.res1, rhythm.res2,
+#' gname_overlap = intersect(rhythm.res1$gname, rhythm.res2$gname)),
+#' alpha = 0.05, adjustP = FALSE)
 toTOJR = function(x, method = "Sidak_FS", alpha = 0.05, adjustP = TRUE, p.adjust.method = "BH", parallel.ncores = 1){
 
   if(is.null(x$rhythm.joint)){
     stopifnot("Please see examples for correct x input" = (length(x)==2)&(!is.null(x[[1]]$rhythm))&(!is.null(x[[2]]$rhythm)))
     x1 = x[[1]]
     x2 = x[[2]]
-    gname.overlap = intersect(x1$gname, x2$gname)
+    gname.overlap = x$gname_overlap
 
     pM = data.frame(pG1 = x1$rhythm[match(gname.overlap, x1$rhythm$gname), "pvalue"],
                     pG2 = x2$rhythm[match(gname.overlap, x2$rhythm$gname), "pvalue"])#pG1 is p-value for group 1;
@@ -201,7 +204,8 @@ toTOJR = function(x, method = "Sidak_FS", alpha = 0.05, adjustP = TRUE, p.adjust
     }, mc.cores = parallel.ncores))
   }else{
     TOJR_adj = unlist(parallel::mclapply(1:nrow(action), function(i){
-      SeqModelSel(action[i, ], pv[i, ], alpha, method)
+      # SeqModelSel(action[i, ], pv[i, ], alpha, method)
+      SeqModelSel(action[i, ], pv[i, ], 0.01, "Sidak_FS")
     }, mc.cores = parallel.ncores))
   }
 

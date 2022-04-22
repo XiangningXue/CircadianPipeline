@@ -28,20 +28,19 @@ CP_DiffR2 = function(x, method = "LR", TOJR = NULL,  alpha = 0.05,  nSampling=10
   }else{
     stopifnot('The input number of types of joint rhythmicity does not match that of overlapping genes in two groups ' =
                 length(x$rhythm.joint$gname)==length(TOJR))
-    overlap.g = x$rhythm.joint$gname[TOJR != "arrhy"]
+    overlap.g = x$gname_overlap[TOJR != "arrhy"]
   }
 
   x1 = x$x1
   x2 = x$x2
-  period = x$x1$P
-
   x1.overlap = x1$data[match(overlap.g, x1$gname), ]
   x2.overlap = x2$data[match(overlap.g, x2$gname), ]
   t1 = x1$time
   t2 = x2$time
-
   x1.rhythm = x1$rhythm[match(overlap.g, x1$gname),]
   x2.rhythm = x2$rhythm[match(overlap.g, x2$gname),]
+  stopifnot("x$x1$P is not equal to x$x2$P. " = x$x1$P==x$x2$P)
+  period = x$x1$P
 
   x.list = lapply(1:length(overlap.g), function(a){
     list(x1.time = t1,
@@ -49,6 +48,7 @@ CP_DiffR2 = function(x, method = "LR", TOJR = NULL,  alpha = 0.05,  nSampling=10
          y1 = as.numeric(x1.overlap[a, ]),
          y2 = as.numeric(x2.overlap[a, ]))
   })
+
   if(method == "LR"){
     res.list = parallel::mclapply(1:length(x.list), function(a){
       one.res = differentialR2::LR_deltaR2(x.list[[a]]$x1.time, x.list[[a]]$y1,

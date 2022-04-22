@@ -304,16 +304,23 @@ CP_PlotHeatmap = function(x, genes.plot = NULL,
 #' CP_PlotPhase(rhythm.diffPar, "circos_diff")
 #' #make a connected phase plot
 #' CP_PlotPhase(rhythm.diffPar, "circos_connected")
-CP_PlotPhase = function(x,  type,
+CP_PlotPhase = function(x, dPhase = NULL, type, TOJR = NULL, RhyBothOnly = TRUE,
                         sig.cut = list(param = "pvalue", fun = "<", val = "0.05"),
                         color.df = NULL,
                         Info1 = "groupI", Info2 = "groupII",
                         filename = "NULL", file.width = 8, file.height = 8,
                         phase.start = -6, concordance.ref = 4,
-                        single.binwidth = 1,
+                        single.binwidth = 1, #for histograms
                         # cir.y.grid = seq(-6,18, 4),
                         cir.x.breaks = seq(-12,12, 4), cir.y.breaks = seq(-6,18, 4),
-                        axis.text.size = 12, legend.position="right"){
+                        axis.text.size = 12, legend.position="right",
+                        color.hist = "#3374b0",
+                        color.diff.refline = "darkgreen",
+                        color.diff.connectline = "grey80",
+                        color.diff.baseline = "blue",
+                        color.diff.sig = "#b33515", color.diff.none = "dark grey",
+                        color.con.line.low = "#e8f7ff", color.con.line.high = "#03a1fc",
+                        color.con.point.sig = "#03a1fc", color.con.point.none = "dark grey"){
 
   adjust.circle = function(x, a.min = -6,  period = 24){
     a.max = a.min + period
@@ -322,32 +329,95 @@ CP_PlotPhase = function(x,  type,
     return(x)
   }
 
-  # to.df.radar = function(peak.vec = peak.df$peak, bin.width = 1, phase.start){
-  #   a.break = seq(phase.start, phase.start+period, by = single.binwidth)
-  #   ranges = cut(peak.vec, breaks = a.break)
-  #   a.df = as.data.frame(table(ranges))
-  #   return(a.df)
-  # }
+  To.studyType = function(x){
+    if(all(c("x1", "x2", "gene_overlap", "rhythm.joint")%in%names(x))){
+      type = "Two"
+      stopifnot("x should be output of CP_Rhythmicity" = (!is.null(x$x1$rhythm))&(!is.null(x$x2$rhythm)))
+    }else if(all(c("rhythm", "P")%in%names(x))){
+      type = "One"
+    }else{
+      stop("x should be output of CP_Rhythmicity")
+    }
+    return(type)
+  }
 
-  stopifnot("Input should be output of CP_Rhythmicity (for single group plot) or CP_DiffPar (for phase difference plot)" = !is.null(x$P))
-  stopifnot("type should be one of 'square', 'circos_hist', 'circos_hist2', 'circos_connected', 'circos_diff'. " = type %in% c("square", "circos_connected", "circos_diff", "circos_diff2", "circos_hist", "circos_hist2"))
+  studyType = To.studyType(x)
+  stopifnot("type should be one of 'circos_hist', 'circos_hist2', 'circos_connected', 'circos_diff'. " = type %in% c("circos_connected", "circos_diff", "circos_hist", "circos_hist2"))
+  stopifnot("'circos_connected' and 'circos_diff' can only be plotted for two group comparison" = (type %in% c("circos_connected", "circos_diff"))&studyType == "One")
   stopifnot("At least one of sig.cut and color.df should be NULL" = sum(is.null(sig.cut), is.null(color.df))>=1)
+  if(studyType == "Two"){
+    stopifnot("x$x1$P is not equal to x$x2$P. " = x$x1$P==x$x2$P)
+    period = x$x1$P
 
-  period = x$P
+    if(is.null(TOJR)){
+      if(is.null(dPhase)){
+        stopifnot("There is no TOJR or dPhase input, and x$rhythm.joint$TOJR is also NULL." = !is.null(x$rhythm.joint$TOJR))
+        warning("There is no TOJR or dPhase input, x$rhythm.joint$TOJR will be used")
+        TOJR = x$rhythm.joint$TOJR
+        rhyI = x$rhythm.joint$gname[TOJR == "rhyI"]
+        rhyII = x$rhythm.joint$gname[TOJR == "rhyII"]
+        rhyboth = x$rhythm.joint$gname[TOJR == "both"]
+        rhyI.both = c(rhyI, rhyboth)
+        rhyII.both = c(rhyII, rhyboth)
+      }else{
+        if((type %in% c("circos_connected", "circos_diff"))){
+          warning("dPhase has been inputted. Genes contained in dPhase will be used as RhyBoth in regardless of any TOJR input. ")
+          rhyboth = dPhase$gname
+        }else if(RhyBothOnly){
+          warning("dPhase has been inputted. Genes contained in dPhase will be used as RhyBoth in regardless of any TOJR input. ")
+          rhyboth = dPhase$gname
+        }else{
+          stopifnot("There is no TOJR input, and x$rhythm.joint$TOJR is also NULL." = !is.null(x$rhythm.joint$TOJR))
+          warning("There is no TOJR input, x$rhythm.joint$TOJR will be used in regardless of dPhase input. ")
+          TOJR = x$rhythm.joint$TOJR
+          rhyI = x$rhythm.joint$gname[TOJR == "rhyI"]
+          rhyII = x$rhythm.joint$gname[TOJR == "rhyII"]
+          rhyboth = x$rhythm.joint$gname[TOJR == "both"]
+          rhyI.both = c(rhyI, rhyboth)
+          rhyII.both = c(rhyII, rhyboth)
+        }
+      }
+    }else{
+      if((type %in% c("circos_connected", "circos_diff"))){
+        warning("dPhase has been inputted. Genes contained in dPhase will be used as RhyBoth in regardless of any TOJR input. ")
+        rhyboth = dPhase$gname
+      }else if(RhyBothOnly){
+        warning("dPhase has been inputted. Genes contained in dPhase will be used as RhyBoth in regardless of any TOJR input. ")
+        rhyboth = dPhase$gname
+      }else{
+        rhyI = x$gname_overlap[TOJR == "rhyI"]
+        rhyII = x$gname_overlap[TOJR == "rhyII"]
+        rhyboth = x$gname_overlap[TOJR == "both"]
+        rhyI.both = c(rhyI, rhyboth)
+        rhyII.both = c(rhyII, rhyboth)
+      }
+    }
 
-  if(is.null(x$diffPar.tab)){
+  }else{
+    period = x$P
+  }
+
+  a.min = phase.start
+  a.max = phase.start+period
+
+  if(studyType == "One"){
     if(!is.null(sig.cut)){
       xx = ifelse(sig.cut$param == "delta.peak", abs(x$rhythm[, sig.cut$param]), x$rhythm[, sig.cut$param])
       peak.df = x$rhythm[.Primitive(sig.cut$fun)(xx, sig.cut$val), ]
     }else{
-      peak.df = x$rhythm
+      warning("There is no sig.cut input, genes with pvalue<0.05 will be plotted. ")
+      sig.cut = list(param = "pvalue", fun = "<", val = "0.05")
+      peak.df = x$rhythm[.Primitive(sig.cut$fun)(xx, sig.cut$val), ]
     }
     peak.df$peak = adjust.circle(peak.df$peak, phase.start, period)
     pp.file = paste0(filename, "_", Info1, "_", type)
-    if(type == "circos_hist"|type == "circos_hist2"|type == "circos_diff"|type == "circos_connected"){
+    if(type %in% c("circos_hist2", "circos_diff", "circos_connected")){
+      warning("For single group data, only 'circos_hist' will be plotted. ")
+      type = "circos_hist"
+    }
+    if(type == "circos_hist"){
       pp = ggplot2::ggplot(data = peak.df,ggplot2::aes(y = peak))+
-        ggplot2::geom_histogram(binwidth = single.binwidth, fill = "#3374b0")  +
-        # ggplot2::geom_text(data=data.frame(x=cir.x.breaks, y=sum(cir.y.breaks[1:2])/2, label=cir.x.breaks), ggplot2::aes(x=x, y=y, label = label), nudge_x = -0.2, size=axis.text.size*1/3) +
+        ggplot2::geom_histogram(binwidth = single.binwidth, fill = color.hist) +
         ggplot2::scale_y_continuous(breaks = cir.y.breaks, limits = c(a.min,a.max),
                                     labels = cir.y.breaks) +
         ggplot2::xlab("") + ggplot2::ylab(paste0("Peak time in ", Info1)) +
@@ -362,42 +432,11 @@ CP_PlotPhase = function(x,  type,
                        legend.text = ggplot2::element_text(size=axis.text.size*0.8),
                        plot.title = ggplot2::element_text(size=axis.text.size+2)) +
         ggplot2::coord_polar(theta="y", start=a.min)
-
-      # df.radar0 = to.df.radar(peak.df$peak, bin.width = 1, phase.start)
-      # df.radar = data.frame(max = max(df.radar0$Freq), min = 0, `Info1` = df.radar0$Freq)
-      # rownames(df.radar) = df.radar0$ranges
-      # df.radar = as.data.frame(t(df.radar))
-      #   fmsb::radarchart(df.radar)
-    }else if(type == "square"){
-      pp = ggplot2::ggplot(data = peak.df,ggplot2::aes(x = peak))+
-        ggplot2::geom_histogram(binwidth = single.binwidth, fill = "#3374b0")  +
-        # ggplot2::geom_text(data=data.frame(x=cir.x.breaks, y=sum(cir.y.breaks[1:2])/2, label=cir.x.breaks), ggplot2::aes(x=x, y=y, label = label), nudge_x = -0.2, size=axis.text.size*1/3) +
-        ggplot2::scale_x_continuous(breaks = cir.y.breaks, limits = c(a.min,a.max),
-                                    labels = cir.y.breaks) +
-        ggplot2::ylab("count") + ggplot2::xlab(paste0("Peak time in ", Info1)) +
-        ggplot2::ggtitle(paste0("Peak histogram of ", Info1))+
-        ggplot2::theme_bw()+
-        ggplot2::theme(aspect.ratio = 1, axis.line = ggplot2::element_blank(),
-                       axis.text.x = ggplot2::element_text(size = axis.text.size),
-                       axis.text.y = ggplot2::element_text(size = axis.text.size),
-                       panel.border = ggplot2::element_blank(),
-                       legend.title = ggplot2::element_text(size=axis.text.size*0.8),
-                       legend.text = ggplot2::element_text(size=axis.text.size*0.8),
-                       plot.title = ggplot2::element_text(size=axis.text.size+2))
     }
-  }else{
+  }else if(studyType == "Two"){
 
-    # phase.start = -6; concordance.ref = 4;
-    # single.binwidth = 1;
-    # cir.y.grid = seq(-6,18, 4); cir.x.breaks = seq(-12,12, 4); cir.y.breaks = seq(-6,18, 4);
-    # axis.text.size = 12; legend.position="right"
-
-    x = x$diffPar.tab
-    a.min = phase.start
-    a.max = phase.start+period
-    peak1 = x$peak1
-    peak2 = x$peak2
-
+    peak1 = dPhase$peak1
+    peak2 = dPhase$peak2
 
     peak.df = data.frame(peak1 = peak1, peak2 = peak2)
     peak.df$peak1 = adjust.circle(peak.df$peak1, phase.start, period)
@@ -449,6 +488,7 @@ CP_PlotPhase = function(x,  type,
           return(FALSE)
         }
       }
+
       if(InRange(cir.x.breaks2, highlight.center+highlight.radius)&InRange(cir.x.breaks2, highlight.center-highlight.radius)){
         rects = data.frame(start = highlight.center-highlight.radius, end = highlight.center+highlight.radius, group = 1)
       }else if(InRange(cir.x.breaks2, highlight.center+highlight.radius)){
@@ -464,10 +504,10 @@ CP_PlotPhase = function(x,  type,
 
       pp = ggplot2::ggplot(data = peak.df,ggplot2::aes(x = delta.peak2, y = peak1))+
         ggplot2::geom_rect(data=rects, inherit.aes=FALSE, ggplot2::aes(xmin=start, xmax=end, ymin=min(cir.y.breaks),
-                                                                       ymax=max(cir.y.breaks), group=group), color="transparent", fill="darkgreen", alpha=0.1)+
-        ggplot2::geom_vline(xintercept = c(cir.x.breaks2[1], tail(cir.x.breaks2, 1)), linetype="dashed", color="grey80") +
+                                                                       ymax=max(cir.y.breaks), group=group), color="transparent", fill=color.diff.refline, alpha=0.1)+
+        ggplot2::geom_vline(xintercept = c(cir.x.breaks2[1], tail(cir.x.breaks2, 1)), linetype="dashed", color=color.diff.connectline) +
         # ggplot2::geom_vline(xintercept = c(-1*concordance.ref,concordance.ref), linetype="dashed", color="darkgreen",size=1, alpha = 0.6) +
-        ggplot2::geom_vline(xintercept = highlight.center,  color = "blue", alpha = 0.6) +
+        ggplot2::geom_vline(xintercept = highlight.center,  color = color.diff.baseline, alpha = 0.6) +
         # ggplot2::geom_hline(yintercept = cir.y.grid, color="grey80") +
         ggplot2::geom_point(size=0.4, ggplot2::aes(color = sig.color), alpha = 0.8) +
         {if(!is.null(color.df)) ggplot2::scale_color_manual(name = "color",
@@ -476,7 +516,7 @@ CP_PlotPhase = function(x,  type,
                                                             labels = sig.color.breaks)}+
         {if(!is.null(sig.cut)) ggplot2::scale_color_manual(name = "color",
                                                            breaks = c("sig"),
-                                                           values = c("sig" = "#b33515", "none"= "dark grey"),
+                                                           values = c("sig" = color.diff.sig, "none"= color.diff.none),
                                                            labels=c(paste(unlist(sig.cut), collapse="")))}+
         ggplot2::geom_text(data=data.frame(x=cir.x.breaks2, y=sum(cir.y.breaks[1:2])/2, label=cir.x.breaks), ggplot2::aes(x=x, y=y, label = label), nudge_x = -0.2, size=axis.text.size*1/3) +
         ggplot2::xlab("") + ggplot2::ylab(paste0("Angles: peak time in ", Info1, "\n",
@@ -502,11 +542,11 @@ CP_PlotPhase = function(x,  type,
                                 gene =  rep(seq_along(1:nrow(peak.df)), 2))
       pp = ggplot2::ggplot(data = peak.df.long)+
         ggplot2::geom_line(alpha = 0.3, ggplot2::aes(x = group, y = peak, group = gene, color = abs(delta.peak)))+
-        ggplot2::scale_color_gradient(name = "Line color=|Peak difference|", low = "#e8f7ff", high = "#03a1fc")+ #very pale blue to not-so-pale blue
+        ggplot2::scale_color_gradient(name = "Line color=|Peak difference|", low = color.con.line.low, high = color.con.line.high)+ #very pale blue to not-so-pale blue
         ggplot2::geom_point(size=2, stroke = 0, alpha = 0.6, shape = 21, ggplot2::aes(x = group, y = peak, color = , fill = rep(sig.color, 2))) + #, ggplot2::aes(color = rep(sig.color, 2))
         {if(!is.null(sig.cut)) ggplot2::scale_fill_manual(name = "Point color",
                                                           breaks = c("sig"),
-                                                          values = c("sig" = "#03a1fc", "none"= "dark grey"),
+                                                          values = c("sig" = color.con.point.sig, "none"= color.con.point.none),
                                                           labels=c(paste(unlist(sig.cut), collapse="")))}+
         ggplot2::geom_text(data=data.frame(x=c(1, 2), y=a.min, label=c(Info1, Info2)), ggplot2::aes(x=x, y=y, label = label), nudge_x = -0.2, size=axis.text.size*1/3) +
         ggplot2::xlab(paste0("")) + ggplot2::ylab("") +
@@ -525,9 +565,20 @@ CP_PlotPhase = function(x,  type,
                        plot.title = ggplot2::element_text(size=axis.text.size+2)) +
         ggplot2::coord_polar(theta="y", start=a.min)
     }else if(type == "circos_hist"|type == "circos_hist2"){
-      peak.df.long = data.frame(peak = c(peak.df$peak1, peak.df$peak2),
-                                delta.peak = rep(peak.df$delta.peak, 2),
-                                group = factor(rep(c(Info1, Info2), each = nrow(peak.df))))
+      if(RhyBothOnly){
+        peak.df.long = data.frame(peak = c(peak.df$peak1, peak.df$peak2),
+                                  group = factor(rep(c(Info1, Info2), each = nrow(peak.df))))
+      }else{
+        peak1.rhyI.both = x$x1$rhythm[x$x1$rhythm$gname%in%rhyI.both, "peak"]
+        peak2.rhyII.both = x$x1$rhythm[x$x2$rhythm$gname%in%rhyII.both, "peak"]
+        peak.df.long = data.frame(peak = c(peak1.rhyI.both, peak2.rhyII.both),
+                                  group = factor(c(rep(Info1, nrow(peak1.rhyI.both)),
+                                                   rep(Info2, nrow(peak2.rhyII.both))
+                                                   )
+                                                 )
+                                  )
+      }
+
       pp = ggplot2::ggplot(data = peak.df.long, ggplot2::aes(y = peak, fill = group))+
         #binwidth = single.binwidth, fill = "#3374b0"
         ggplot2::geom_histogram(binwidth = single.binwidth, position = 'identity', alpha = 0.6)+
@@ -548,29 +599,29 @@ CP_PlotPhase = function(x,  type,
         {if(type == "circos_hist2")ggplot2::facet_wrap(~group)}+
         {if(type == "circos_hist2")ggplot2::theme(legend.position="none")}
 
-    } else if(type == "square"){
-      peak.df2 = peak.df
-      peak.df2$peak2 =  peak.df2$peak1+peak.df2$delta.peak
-      pp = ggplot2::ggplot(data = peak.df2, ggplot2::aes(x = peak1, y = peak2, color = sig.color)) +
-        ggplot2::geom_point(alpha = 0.8)+
-        {if(!is.null(sig.cut)) ggplot2::scale_color_manual(name = "color",
-                                                           breaks = c("sig"),
-                                                           values = c("sig" = "#b33515", "none"= "black"),
-                                                           labels=c(paste(unlist(sig.cut), collapse="")))}+
-        ggplot2::geom_abline(intercept=0,slope=1,colour='blue',size=1)+
-        ggplot2::geom_abline(intercept=concordance.ref,slope=1,colour='darkgreen',size=1,linetype=2)+
-        ggplot2::geom_abline(intercept=-1*concordance.ref,slope=1,colour='darkgreen',size=1,linetype=2)+
-        ggplot2::labs(title = paste0("Peak difference btw. ", Info1, " and ", Info2), x = Info1, y = Info2)+
-        ggplot2::theme_bw()+
-        ggplot2::theme(axis.ticks.x=ggplot2::element_line(colour="black",size=1,linetype=1),
-                       axis.text.x=ggplot2::element_text(colour="black",size=axis.text.size,vjust=0),
-                       axis.ticks.y=ggplot2::element_line(colour="black",size=1,linetype=1),
-                       axis.text.y=ggplot2::element_text(colour="black",size=axis.text.size,hjust=0),
-                       legend.title = ggplot2::element_text(size=axis.text.size*0.8),
-                       legend.text = ggplot2::element_text(size=axis.text.size*0.8),
-                       legend.position = legend.position,
-                       plot.title = ggplot2::element_text(size=axis.text.size+2))
-    }
+    } #else if(type == "square"){
+    #   peak.df2 = peak.df
+    #   peak.df2$peak2 =  peak.df2$peak1+peak.df2$delta.peak
+    #   pp = ggplot2::ggplot(data = peak.df2, ggplot2::aes(x = peak1, y = peak2, color = sig.color)) +
+    #     ggplot2::geom_point(alpha = 0.8)+
+    #     {if(!is.null(sig.cut)) ggplot2::scale_color_manual(name = "color",
+    #                                                        breaks = c("sig"),
+    #                                                        values = c("sig" = "#b33515", "none"= "black"),
+    #                                                        labels=c(paste(unlist(sig.cut), collapse="")))}+
+    #     ggplot2::geom_abline(intercept=0,slope=1,colour='blue',size=1)+
+    #     ggplot2::geom_abline(intercept=concordance.ref,slope=1,colour='darkgreen',size=1,linetype=2)+
+    #     ggplot2::geom_abline(intercept=-1*concordance.ref,slope=1,colour='darkgreen',size=1,linetype=2)+
+    #     ggplot2::labs(title = paste0("Peak difference btw. ", Info1, " and ", Info2), x = Info1, y = Info2)+
+    #     ggplot2::theme_bw()+
+    #     ggplot2::theme(axis.ticks.x=ggplot2::element_line(colour="black",size=1,linetype=1),
+    #                    axis.text.x=ggplot2::element_text(colour="black",size=axis.text.size,vjust=0),
+    #                    axis.ticks.y=ggplot2::element_line(colour="black",size=1,linetype=1),
+    #                    axis.text.y=ggplot2::element_text(colour="black",size=axis.text.size,hjust=0),
+    #                    legend.title = ggplot2::element_text(size=axis.text.size*0.8),
+    #                    legend.text = ggplot2::element_text(size=axis.text.size*0.8),
+    #                    legend.position = legend.position,
+    #                    plot.title = ggplot2::element_text(size=axis.text.size+2))
+    # }
   }
   if(!is.null(filename)){
     pdf(paste0(pp.file, ".pdf"), width = file.width, height = file.height)
