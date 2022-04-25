@@ -139,7 +139,7 @@ CP_OneGroup = function(x1, period = 24, alpha = 0.05, CI = FALSE, p.adjust.metho
 #' Categorize genes to four types of joint rhythmicity (TOJR).
 #' @param x one of the following two: \itemize{
 #' \item output of CP_rhythmicity(x1, x2), both x1 and x2 are not NULL. (A list with the rhythm.joint component).
-#' \item A list of with two outputs CP_rhythmicity(x1, x2 = NULL), each using data from a different group. }
+#' \item A list of with two outputs from CP_rhythmicity(x1, x2 = NULL), each using data from a different group. }
 #' @param method character string specifying the algorithm used for joint rhythmicity categorization. Should be one of "Sidak_FS", "Sidak_BS", "VDA", "AWFisher".
 #' @param alpha integer. Threshold for rhythmicity p-value in joint rhythmicity categorization.
 #' @param adjustP logic. Should joint rhythmicity categorization be based on adjusted p-value?
@@ -163,8 +163,7 @@ CP_OneGroup = function(x1, period = 24, alpha = 0.05, CI = FALSE, p.adjust.metho
 #' M1=c(4, 6), M2=c(4, 6), sigma1=1, sigma2=1)
 #' rhythm.res1 = CP_Rhythmicity(x1 = x[[1]])
 #' rhythm.res2 = CP_Rhythmicity(x1 = x[[2]])
-#' TOJR = toTOJR(list(rhythm.res1, rhythm.res2,
-#' gname_overlap = intersect(rhythm.res1$gname, rhythm.res2$gname)),
+#' TOJR = toTOJR(x = list(x1 = rhythm.res1, x2 = rhythm.res2),
 #' alpha = 0.05, adjustP = FALSE)
 toTOJR = function(x, method = "Sidak_FS", alpha = 0.05, adjustP = TRUE, p.adjust.method = "BH", parallel.ncores = 1){
 
@@ -172,7 +171,7 @@ toTOJR = function(x, method = "Sidak_FS", alpha = 0.05, adjustP = TRUE, p.adjust
     stopifnot("Please see examples for correct x input" = (length(x)==2)&(!is.null(x[[1]]$rhythm))&(!is.null(x[[2]]$rhythm)))
     x1 = x[[1]]
     x2 = x[[2]]
-    gname.overlap = x$gname_overlap
+    gname.overlap = intersect(x1$gname, x2$gname)
 
     pM = data.frame(pG1 = x1$rhythm[match(gname.overlap, x1$rhythm$gname), "pvalue"],
                     pG2 = x2$rhythm[match(gname.overlap, x2$rhythm$gname), "pvalue"])#pG1 is p-value for group 1;

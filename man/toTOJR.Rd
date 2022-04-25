@@ -16,7 +16,7 @@ toTOJR(
 \arguments{
 \item{x}{one of the following two: \itemize{
 \item output of CP_rhythmicity(x1, x2), both x1 and x2 are not NULL. (A list with the rhythm.joint component).
-\item A list of with two outputs CP_rhythmicity(x1, x2 = NULL), each using data from a different group. }}
+\item A list of with two outputs from CP_rhythmicity(x1, x2 = NULL), each using data from a different group. }}
 
 \item{method}{character string specifying the algorithm used for joint rhythmicity categorization. Should be one of "Sidak_FS", "Sidak_BS", "VDA", "AWFisher".}
 
@@ -48,5 +48,6 @@ phase1=c(0, pi/4), phase2=c(pi/4, pi/2),
 M1=c(4, 6), M2=c(4, 6), sigma1=1, sigma2=1)
 rhythm.res1 = CP_Rhythmicity(x1 = x[[1]])
 rhythm.res2 = CP_Rhythmicity(x1 = x[[2]])
-TOJR = toTOJR(list(rhythm.res1, rhythm.res2), alpha = 0.05, adjustP = FALSE)
+TOJR = toTOJR(x = list(x1 = rhythm.res1, x2 = rhythm.res2),
+alpha = 0.05, adjustP = FALSE)
 }
