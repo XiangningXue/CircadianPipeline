@@ -409,9 +409,9 @@ CP_PlotPeakHist = function(x, TOJR = NULL, RhyBothOnly = FALSE, sig.cut = list(p
       ggplot2::ggtitle(paste0("Histogram of peak time"))+
       ggplot2::scale_y_continuous(breaks = cir.y.breaks, limits = c(a.min,a.max), labels = cir.y.breaks) +
       # ggplot2::scale_y_continuous(breaks = cir.y.breaks, labels = cir.y.breaks) +
-      ggplot2::scale_colour_manual(
+      ggplot2::scale_fill_manual(
         values = color.hist,
-        aesthetics = "colour")+
+        aesthetics = "fill")+
       ggplot2::theme_bw()+
       ggplot2::theme(aspect.ratio = 1, axis.line = ggplot2::element_blank(),
                      axis.text.x = ggplot2::element_text(size = axis.text.size),
