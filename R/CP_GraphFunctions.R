@@ -541,7 +541,7 @@ CP_PlotPeakDiff = function(x, TOJR, dPhase,
       xx = ifelse(rep(color.cut$param == "delta.peak", nrow(dPhase)), abs(dPhase[, color.cut$param]), dPhase[, color.cut$param])
       sig.color = .Primitive(color.cut$fun)(xx, color.cut$val)
       sig.color = ifelse(sig.color, "sig", "none") #red: #b33515
-      legend.label = ifelse(color.cut$param == "delta.peak", paste0("|peak difference|", color.cut$fun, color.cut$val), c(paste(unlist(color.cut), collapse="")))
+      legend.label = ifelse(color.cut$param == "delta.peak", paste0("|peak difference|", color.cut$fun, color.cut$val), c(paste(unlist(color.cut[1:3]), collapse="")))
       #paste(unlist(color.cut), collapse="")
     }else if(!is.null(color.df)){
       sig.color = color.df$label
@@ -609,7 +609,7 @@ CP_PlotPeakDiff = function(x, TOJR, dPhase,
     {if(!is.null(color.cut)) ggplot2::scale_color_manual(name = "color",
                                                          breaks = c("sig"),
                                                          values = c("sig" = color.cut$color.sig, "none"= color.cut$color.none),
-                                                         labels=c(paste(unlist(color.cut), collapse="")))}+
+                                                         labels=c(paste(unlist(color.cut[1:3]), collapse="")))}+
     ggplot2::geom_text(data=data.frame(x=cir.x.breaks2, y=sum(cir.y.breaks[1:2])/2, label=cir.x.breaks), ggplot2::aes(x=x, y=y, label = label), nudge_x = -0.2, size=axis.text.size*1/3) +
     ggplot2::xlab("") + ggplot2::ylab(paste0("Angles: peak time in ", Info1, "\n",
                                              "Radius: ", "peak difference (", Info2, "-", Info1, ")")) +
@@ -742,7 +742,7 @@ CP_PlotPeakLink = function(x, TOJR, dPhase,
       xx = ifelse(rep(color.cut$param == "delta.peak", nrow(dPhase)), abs(dPhase[, color.cut$param]), dPhase[, color.cut$param])
       sig.color = .Primitive(color.cut$fun)(xx, color.cut$val)
       sig.color = ifelse(sig.color, "sig", "none") #red: #b33515
-      legend.label = ifelse(color.cut$param == "delta.peak", paste0("|peak difference|", color.cut$fun, color.cut$val), c(paste(unlist(color.cut), collapse="")))
+      legend.label = ifelse(color.cut$param == "delta.peak", paste0("|peak difference|", color.cut$fun, color.cut$val), c(paste(unlist(color.cut[1:3]), collapse="")))
       #paste(unlist(color.cut), collapse="")
     }else if(!is.null(color.df)){
       sig.color = color.df$label
@@ -770,7 +770,7 @@ CP_PlotPeakLink = function(x, TOJR, dPhase,
     {if(!is.null(color.cut)) ggplot2::scale_fill_manual(name = "Point color",
                                                         breaks = c("sig"),
                                                         values = c("sig" = color.cut$color.sig, "none"= color.cut$color.none),
-                                                        labels=c(paste(unlist(color.cut), collapse="")))}+
+                                                        labels=c(paste(unlist(color.cut[1:3]), collapse="")))}+
     ggplot2::geom_text(data=data.frame(x=c(1, 2), y=a.min, label=c(Info1, Info2)), ggplot2::aes(x=x, y=y, label = label), nudge_x = -0.2, size=axis.text.size*1/3) +
     ggplot2::xlab(paste0("")) + ggplot2::ylab("") +
     ggplot2::ggtitle(paste0("Connected peak time between ", Info1, " and ", Info2))+
